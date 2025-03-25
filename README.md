@@ -101,7 +101,15 @@ This document defines the requirements for developing a backend service in Golan
 | status      | Enum   | TO_DO, IN_PROGRESS, REVIEW, DONE, BLOCKED |
 | priority    | Enum   | HIGH, MEDIUM, LOW, CRITICAL               |
 | dueDate     | Time   | Due date                                  |
-
+### Sprint Table  
+| Column     | Type   | Description                     |  
+|------------|--------|---------------------------------|  
+| id         | Int    | Primary key                     |  
+| name       | String | Sprint name                     |  
+| startDate  | Time   | Sprint start date               |  
+| endDate    | Time   | Sprint end date                 |  
+| projectId  | Int    | Associated project ID           |  
+| goal       | String | Sprint goal                     |
 ## 5. Developer Understanding Questions
 To ensure the developer understands the requirements, consider asking these questions:
 

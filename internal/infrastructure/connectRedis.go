@@ -1,8 +1,9 @@
 package infrastructure
 
 import(
+    "lqkhoi-go-http-api/config"
+
 	"github.com/redis/go-redis/v9"
-	"lqkhoi-go-http-api/config"
 )
 
 func NewRedisConnection(cfg config.RedisConfig) *redis.Client{

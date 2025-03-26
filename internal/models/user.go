@@ -1,7 +1,8 @@
 package models
 import (
+    "time"
+
 	"gorm.io/gorm"
-	"time"
 )
 type UserRole string
 
@@ -12,15 +13,19 @@ const (
 )
 type User struct {
     ID        int            `gorm:"primaryKey;autoIncrement" json:"id"`
-    Username  string         `gorm:"unique;not null" json:"username"`
-    Email     string         `gorm:"unique;not null" json:"email"`
+    CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+    Username  string         `gorm:"unique;not null;size:255" json:"username"`
+    Email     string         `gorm:"unique;not null;size:255" json:"email"`
     Password  string         `gorm:"not null" json:"password"`
-    Role      UserRole       `gorm:"type:user_role;not null" json:"role"`
-    FirstName string         `json:"first_name"`
-    LastName  string         `json:"last_name"`
-    CreatedAt time.Time      `json:"created_at"`      
-    UpdatedAt time.Time      `json:"updated_at"`     
-    DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+    Role      UserRole       `gorm:"type:user_role;not null;default:'TEAM_MEMBER'" json:"role"`
+    FirstName string         `gorm:"size:100" json:"first_name"`
+    LastName  string         `gorm:"size:100" json:"last_name"`
+
+    ManagedProjects []Project `gorm:"foreignKey:ManagerID" json:"managed_projects,omitempty"`
+    AssignedTasks []Task `gorm:"foreignKey:AssigneeID" json:"assigned_tasks,omitempty"`
 }
 func (u *User)BeforeCreate(tx *gorm.DB) error{
 	u.ID = 0

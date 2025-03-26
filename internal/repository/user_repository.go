@@ -2,6 +2,7 @@ package repository
 
 import (
 	"lqkhoi-go-http-api/internal/models"
+
 	"gorm.io/gorm"
 )
 
@@ -10,6 +11,7 @@ type UserRepository interface {
 	FindByID(id int) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
 	FindByUsername(username string) (*models.User, error)
+	List() ([]models.User, error)
 	Update(user *models.User) error
 	Delete(id int) error
 }
@@ -51,6 +53,15 @@ func (r *userRepository) FindByUsername(username string) (*models.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepository) List() ([]models.User, error) {
+	var users []models.User
+	result := r.db.Find(&users)
+	if result.Error !=nil{
+		return nil,result.Error
+	}
+	return users,nil
 }
 
 func (r *userRepository) Update(user *models.User) error {

@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"lqkhoi-go-http-api/pkg/custom_structs"
+	"lqkhoi-go-http-api/pkg/structs"
 	"lqkhoi-go-http-api/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
@@ -33,11 +33,11 @@ func AuthMiddleware() fiber.Handler {
 		}
 		tokenString := parts[1]
 
-		token, err := jwt.ParseWithClaims(tokenString, &custom_structs.Claims{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(tokenString, &structs.Claims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fiber.NewError(fiber.StatusUnauthorized, "Unexpected signing method")
 			}
-			return []byte(utils.GetenvStringValue("JWT_SECRET","randomkey")), nil
+			return []byte(utils.GetenvStringValue("JWT_SECRET", "randomkey")), nil
 		})
 
 		if err != nil {
@@ -50,14 +50,14 @@ func AuthMiddleware() fiber.Handler {
 				})
 			}
 
-			if err == jwt.ErrTokenExpired{
+			if err == jwt.ErrTokenExpired {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 					"status":  "error",
 					"message": "Token has expired",
 					"data":    nil,
 				})
 			}
-			
+
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"status":  "error",
 				"message": "Invalid or expired JWT",
@@ -65,7 +65,7 @@ func AuthMiddleware() fiber.Handler {
 			})
 		}
 
-		if claims, ok := token.Claims.(*custom_structs.Claims); ok && token.Valid {
+		if claims, ok := token.Claims.(*structs.Claims); ok && token.Valid {
 			c.Locals("user_claims", claims)
 			return c.Next()
 		}
@@ -77,4 +77,3 @@ func AuthMiddleware() fiber.Handler {
 		})
 	}
 }
-

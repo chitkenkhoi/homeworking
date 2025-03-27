@@ -1,4 +1,4 @@
-package custom_structs
+package structs
 
 import (
 	"lqkhoi-go-http-api/internal/models"

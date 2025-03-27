@@ -37,34 +37,34 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  app:
-    container_name: go_app
-    build:
-      context: ..
-      dockerfile: ./deployment/Dockerfile
-    ports:
-      - "${APP_PORT:-3000}:3000"
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+  # app:
+  #   container_name: go_app
+  #   build:
+  #     context: ..
+  #     dockerfile: ./deployment/Dockerfile
+  #   ports:
+  #     - "${SERVER_PORT:-3000}:3000"
+  #   environment:
+  #     DB_HOST: db
+  #     DB_PORT: 5432
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD: ${DB_PASSWORD}
+  #     DB_NAME: ${DB_NAME}
 
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: 6379
+  #     REDIS_PASSWORD: ${REDIS_PASSWORD}
 
-      APP_LISTEN_PORT: ${APP_PORT}
+  #     APP_LISTEN_PORT: ${SERVER_PORT}
 
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-network
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   networks:
+  #     - app-network
 volumes:
   postgres_data:
   redis_data:

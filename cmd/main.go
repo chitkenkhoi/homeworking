@@ -1,18 +1,19 @@
 package main
 
-import(
-	"fmt"
+import (
+	"log/slog"
 
 	"lqkhoi-go-http-api/internal/app"
-	
+
 	"github.com/joho/godotenv"
-	
-	
 )
 
-func main(){
+func main() {
 	godotenv.Load()
-	if err := app.New();err!=nil{
-		fmt.Println(err)
+	app := app.New()
+
+	if err := app.Setup(); err != nil {
+		slog.Error("Error when setting up server")
 	}
+	app.Run()
 }

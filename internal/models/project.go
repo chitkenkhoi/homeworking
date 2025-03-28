@@ -16,19 +16,28 @@ const (
 )
 
 type Project struct {
-	ID        int           `gorm:"primaryKey;autoIncrement" json:"id"`
+	ID        int            `gorm:"primaryKey;autoIncrement" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"` 
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	Name        string        `gorm:"not null;size:255" json:"name"`
 	Description string        `gorm:"type:text" json:"description"`
 	StartDate   time.Time     `json:"start_date"`
 	EndDate     *time.Time    `json:"end_date,omitempty"`
 	Status      ProjectStatus `gorm:"type:project_status;not null;default:'ACTIVE'" json:"status"`
-	ManagerID   int          `json:"manager_id"` 
+	ManagerID   int           `json:"manager_id"`
 
-	Manager User `gorm:"foreignKey:ManagerID" json:"manager"`
-	Tasks []Task `gorm:"foreignKey:ProjectID" json:"tasks,omitempty"`
-	Sprints []Sprint `gorm:"foreignKey:ProjectID" json:"sprints,omitempty"`
+	Manager     User     `gorm:"foreignKey:ManagerID" json:"manager"`
+	Tasks       []Task   `gorm:"foreignKey:ProjectID" json:"tasks,omitempty"`
+	Sprints     []Sprint `gorm:"foreignKey:ProjectID" json:"sprints,omitempty"`
+	TeamMembers []User   `gorm:"foreignKey:CurrentProjectID" json:"team_members,omitempty"`
+}
+
+func (ps ProjectStatus) IsValid() bool {
+	switch ps {
+	case StatusActive, StatusCancelled, StatusCompleted, StatusOnHold:
+		return true
+	}
+	return false
 }

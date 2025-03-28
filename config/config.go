@@ -26,11 +26,17 @@ type RedisConfig struct {
 type ServerConfig struct {
 	Host string `mapstructure:"host"`
 	Port string `mapstructure:"port"`
+	Limiter LimiterConfig `mapstructure:"limiter"`
 }
 
+type LimiterConfig struct {
+	Limit  int    `mapstructure:"limit"`
+	Window int    `mapstructure:"window"`
+	Prefix string `mapstructure:"prefix"`
+}
 
 type Config struct {
-	Database DBConfig     `mapstructure:"database"`
+	Database DBConfig     `mapstructure:"db"`
 	Redis    RedisConfig  `mapstructure:"redis"`
 	Server   ServerConfig `mapstructure:"server"`
 	// Add JWT secret if needed directly here or in its own struct
@@ -43,15 +49,15 @@ func LoadConfig(configPath string) (cfg Config, err error) {
 	// These are the lowest priority and used if no other source provides the value.
 	viper.SetDefault("server.host", "localhost")
 	viper.SetDefault("server.port", "3000")
-	viper.SetDefault("database.host", "localhost")
-	viper.SetDefault("database.name", "appdb")
-	viper.SetDefault("database.port", "5432")
+	viper.SetDefault("db.host", "localhost")
+	viper.SetDefault("db.name", "appdb")
+	viper.SetDefault("db.port", "5432")
 	viper.SetDefault("redis.host", "localhost")
 	viper.SetDefault("redis.port", "6379")
 	if configPath != "" {
-		viper.AddConfigPath(configPath) 
-		viper.SetConfigName("config")   
-		viper.SetConfigType("yaml")     
+		viper.AddConfigPath(configPath)
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
 
 		if err := viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -66,35 +72,15 @@ func LoadConfig(configPath string) (cfg Config, err error) {
 		log.Println("No config file path specified, using defaults and environment variables.")
 	}
 
-
-	viper.AutomaticEnv() 
-
-	// Define a replacer to map env vars like DB_HOST to database.host
-	// It replaces dots (".") with underscores ("_") when looking for env vars.
+	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AllowEmptyEnv(false)
 
-
-	// Optional: Set a prefix if your env vars are like APP_DB_HOST
-	// viper.SetEnvPrefix("APP") // Uncomment if you use a prefix like APP_
-
-	// Note: Viper automatically converts env var keys to lowercase for matching.
-	// So, DB_HOST -> db_host -> (via replacer) -> database.host
-
-	// Specifically read standalone secrets not nested under prefixes if needed
-	// Viper's AutomaticEnv + Replacer usually handles this if names align.
-	// e.g., env var JWT_SECRET will map to "jwt_secret" key if no prefix.
-	// If you used SetEnvPrefix("APP"), it would look for APP_JWT_SECRET.
-
-
-	// --- 4. Unmarshal all configuration sources into the Config struct ---
-	// Viper applies precedence: Env Vars > Config File > Defaults
 	err = viper.Unmarshal(&cfg)
 	if err != nil {
 		return cfg, fmt.Errorf("unable to decode config into struct: %w", err)
 	}
 
-	// --- 5. (Optional but Recommended) Validation ---
-	// Ensure critical secrets are present
 	if cfg.Redis.Password == "" {
 		log.Println("INFO: Redis password (REDIS_PASSWORD) is not set.")
 	}
@@ -111,17 +97,14 @@ func LoadConfig(configPath string) (cfg Config, err error) {
 	if cfg.Redis.Password == "" {
 		log.Println("INFO: Redis password (REDIS_PASSWORD) is not set.")
 	}
-    if cfg.JwtSecret == "" {
+	if cfg.JwtSecret == "" {
 		log.Println("CRITICAL WARNING: JWT secret (JWT_SECRET) is not set.")
 		return cfg, errors.New("jwt secret (JWT_SECRET) is required")
 	}
-
-
 	log.Println("Configuration loaded successfully.")
 	return cfg, nil
 }
 
-
 func (rc RedisConfig) Addr() string {
-    return fmt.Sprintf("%s:%s", rc.Host, rc.Port)
+	return fmt.Sprintf("%s:%s", rc.Host, rc.Port)
 }

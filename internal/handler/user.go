@@ -18,20 +18,6 @@ type UserHandler struct {
 	userService service.UserService
 }
 
-func createErrorResponse(msg string, err any) fiber.Map {
-	return fiber.Map{
-		"error":   msg,
-		"details": err,
-	}
-}
-
-func createSuccessResponse(msg string, data any) fiber.Map {
-	return fiber.Map{
-		"message": msg,
-		"data":    data,
-	}
-}
-
 func NewUserHandler(userService service.UserService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
@@ -49,15 +35,18 @@ func (h *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("Validation failed", errors))
 	}
-	log.Printf("Validation successful for input: %+v\n", *input)
+	user := input.MapToUser()
 
-	if user, err := h.userService.CreateUser(input); err != nil {
+	if user, err := h.userService.CreateUser(user); err != nil {
 		log.Printf("Failed to create user: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			createErrorResponse("Failed to create user", err.Error()))
 	} else {
+		output := &dto.UserResponse{}
+		output.MapToDto(user)
+		log.Printf("Success map to response")
 		return c.Status(fiber.StatusCreated).JSON(
-			createSuccessResponse("user is created", user))
+			createSuccessResponse("user is created", output))
 	}
 }
 

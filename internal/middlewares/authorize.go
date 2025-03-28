@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"strconv"
 
 	"lqkhoi-go-http-api/internal/models"
@@ -9,14 +10,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func RequireAdmin() fiber.Handler {
+func RequireRoleIs(role models.UserRole) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		claimsData := c.Locals("user_claims")
-		// if claimsData == nil {
-		//     return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-		//         "error": "Unauthorized: Missing claims",
-		//     })
-		// }
 		userClaims, ok := claimsData.(*structs.Claims)
 		if !ok || userClaims == nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -24,9 +20,9 @@ func RequireAdmin() fiber.Handler {
 			})
 		}
 
-		if userClaims.Role != models.Admin {
+		if userClaims.Role != role {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": "Forbidden: Admin access required",
+				"error": fmt.Sprintf("Forbidden: %v access required", role),
 			})
 		}
 
@@ -34,7 +30,7 @@ func RequireAdmin() fiber.Handler {
 	}
 }
 
-func RequireOwner() fiber.Handler {
+func RequireOwnerOrAdmin() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		claimsData := c.Locals("user_claims")
 		userClaims, ok := claimsData.(*structs.Claims)

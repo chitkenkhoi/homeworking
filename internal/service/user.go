@@ -15,7 +15,7 @@ import (
 )
 
 type UserService interface {
-	CreateUser(user *dto.CreateUserRequest) (*models.User, error)
+	CreateUser(user *models.User) (*models.User, error)
 	FindByID(id int) (*models.User, error)
 	Login(rq dto.LoginRequest) (string, error)
 	GetAllUsers() ([]models.User, error)
@@ -33,8 +33,8 @@ func NewUserService(userRepository repository.UserRepository) UserService {
 	}
 }
 
-func (s *userService) CreateUser(userRequest *dto.CreateUserRequest) (*models.User, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userRequest.Password), bcrypt.DefaultCost)
+func (s *userService) CreateUser(user *models.User) (*models.User, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("Failed to hash password: %v", err)
 		if err == bcrypt.ErrPasswordTooLong {
@@ -42,8 +42,7 @@ func (s *userService) CreateUser(userRequest *dto.CreateUserRequest) (*models.Us
 		}
 		return nil, err
 	}
-	userRequest.Password = string(hashedPassword)
-	user := userRequest.MapToUser()
+	user.Password = string(hashedPassword)
 	return s.userRepository.Create(user)
 }
 

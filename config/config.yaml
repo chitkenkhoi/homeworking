@@ -1,11 +1,19 @@
-database:
+db:
   host: "localhost"
   name: "appdb"     
   port: 5432  
+  user: "will-be-override-by-env-var"
+  password: "will-be-override-by-env-var"
 
 redis:
   host: "localhost"
   port: 6379
+  password: "will-be-override-by-env-var"
 
 server:
   port: 3000
+  limiter:
+    limit: 10
+    window: 1 #in minutes
+    prefix: "rate_limit:"
+jwt_secret: "will-be-override-by-env-var"

@@ -50,13 +50,17 @@ func (app *App) Setup() error {
 		log.Fatal(err)
 		return err
 	}
-	user_repository := repository.NewUserRepository(db)
+	userRepository := repository.NewUserRepository(db)
+	projectRepository := repository.NewProjectRepository(db)
 
-	user_service := service.NewUserService(user_repository)
+	userService := service.NewUserService(userRepository)
+	projectService := service.NewProjectService(projectRepository)
 
-	user_handler := handler.NewUserHandler(user_service)
+	userHandler := handler.NewUserHandler(userService)
+	projectHandler := handler.NewProjectHandler(projectService)
 
-	routes.SetupUserRoutes(app.server, user_handler)
+	routes.SetupUserRoutes(app.server, userHandler)
+	routes.SetupProjectRoutes(app.server,projectHandler)
 
 	return nil
 }

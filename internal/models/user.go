@@ -22,9 +22,11 @@ type User struct {
     Role      UserRole       `gorm:"type:user_role;not null;default:'TEAM_MEMBER'" json:"role"`
     FirstName string         `gorm:"size:100" json:"first_name"`
     LastName  string         `gorm:"size:100" json:"last_name"`
+    CurrentProjectID *int `gorm:"index" json:"current_project_id,omitempty"`
 
     ManagedProjects []Project `gorm:"foreignKey:ManagerID" json:"managed_projects,omitempty"`
     AssignedTasks []Task `gorm:"foreignKey:AssigneeID" json:"assigned_tasks,omitempty"`
+    CurrentProject *Project `gorm:"foreignKey:CurrentProjectID;references:ID" json:"current_project,omitempty"`
 }
 func (u *User)BeforeCreate(tx *gorm.DB) error{
 	u.ID = 0

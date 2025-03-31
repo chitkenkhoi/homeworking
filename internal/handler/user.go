@@ -25,26 +25,47 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 }
 
 func (h *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	baseLogger := utils.LoggerFromContext(ctx)
+
+	logger := baseLogger.With(
+		"component", "UserHandler",
+		"handler", "CreateUserHandler",
+	)
+
+	logger.Debug("Parsing JSON input")
+
 	input := &dto.CreateUserRequest{}
 	if err := c.BodyParser(input); err != nil {
+
+		logger.Error("Can not parse JSON", "error", err.Error())
+
 		return c.Status(fiber.StatusBadRequest).JSON(
-			createErrorResponse("Cannot parse JSON", err.Error()))
+			createErrorResponse("Cannot parse JSON", nil))
 	}
-	errors := utils.ValidateStruct(*input) // Pass the struct value
-	if errors != nil {
+
+	logger.Debug("Validating user's input", "input", input)
+
+	errs := utils.ValidateStruct(*input) // Pass the struct value
+	if errs != nil {
+		logger.Error("Validation failed", "error", errs)
 		return c.Status(fiber.StatusBadRequest).JSON(
-			createErrorResponse("Validation failed", errors))
+			createErrorResponse("Validation failed", errs))
 	}
+
 	user := input.MapToUser()
 
-	if user, err := h.userService.CreateUser(user); err != nil {
-		log.Printf("Failed to create user: %v", err)
+	logger.Debug("Successfully mapping data to user model", "user", user)
+
+	if user, err := h.userService.CreateUser(ctx, user); err != nil {
+		logger.Error("Failed to create user", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			createErrorResponse("Failed to create user", err.Error()))
 	} else {
-		output := &dto.UserResponse{}
-		output.MapToDto(user)
-		log.Printf("Success map to response")
+		output := dto.MapToUserDto(user)
+
+		logger.Debug("Successfully map to response", "response", output)
+
 		return c.Status(fiber.StatusCreated).JSON(
 			createSuccessResponse("user is created", output))
 	}
@@ -54,7 +75,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	input := &dto.LoginRequest{}
 	if err := c.BodyParser(input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
-			createErrorResponse("Cannot parse JSON", err))
+			createErrorResponse("Cannot parse JSON", nil))
 	}
 
 	errs := utils.ValidateStruct(*input)
@@ -62,9 +83,11 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("Validation failed", errs))
 	}
+
 	log.Printf("Validation successful for input: %+v\n", *input)
 
-	if token, err := h.userService.Login(*input); err != nil {
+	ctx := c.UserContext()
+	if token, err := h.userService.Login(ctx, *input); err != nil {
 		if errors.Is(err, structs.ErrDatabaseFail) || errors.Is(err, structs.ErrInternalServer) {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				createErrorResponse("Internal server error", err))
@@ -92,7 +115,10 @@ func (h *UserHandler) GetMe(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			createErrorResponse("Internal Server Error: Invalid claims format", nil))
 	}
-	user, err := h.userService.FindByID(userClaims.UserID)
+
+	ctx := c.UserContext()
+	user, err := h.userService.FindByID(ctx, userClaims.UserID)
+
 	if err != nil {
 		if errors.Is(err, structs.ErrDatabaseFail) {
 			return c.Status(fiber.StatusInternalServerError).JSON(createErrorResponse(
@@ -102,7 +128,8 @@ func (h *UserHandler) GetMe(c *fiber.Ctx) error {
 				"User not found", err.Error()))
 		}
 	} else {
-		return c.Status(fiber.StatusFound).JSON(createSuccessResponse("Found user", user))
+		output := dto.MapToUserDto(user)
+		return c.Status(fiber.StatusFound).JSON(createSuccessResponse("Found user", output))
 	}
 }
 
@@ -113,7 +140,10 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("invalid user id", nil))
 	}
-	user, err := h.userService.FindByID(id)
+
+	ctx := c.UserContext()
+	user, err := h.userService.FindByID(ctx, id)
+
 	if err != nil {
 		if errors.Is(err, structs.ErrUserNotExist) {
 			return c.Status(fiber.StatusNotFound).JSON(
@@ -125,18 +155,21 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 		}
 
 	} else {
+		output := dto.MapToUserDto(user)
 		return c.Status(fiber.StatusFound).JSON(
-			createSuccessResponse("found user", user))
+			createSuccessResponse("found user", output))
 	}
 }
 
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
-	if users, err := h.userService.GetAllUsers(); err != nil {
+	ctx := c.UserContext()
+	if users, err := h.userService.GetAllUsers(ctx); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("Internal database error", err.Error()))
 	} else {
+		output := dto.MapToUserDtoSlice(users)
 		return c.Status(fiber.StatusOK).JSON(
-			createSuccessResponse("Found all users", users))
+			createSliceSuccessResponseGeneric("Found all users", output))
 	}
 }
 
@@ -147,7 +180,9 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("invalid user id", nil))
 	}
-	err = h.userService.DeleteUser(id)
+
+	ctx := c.UserContext()
+	err = h.userService.DeleteUser(ctx, id)
 	if err != nil {
 		if errors.Is(err, structs.ErrUserNotExist) {
 			return c.Status(fiber.StatusBadRequest).JSON(

@@ -1,19 +1,24 @@
 package repository
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"lqkhoi-go-http-api/internal/dto"
 	"lqkhoi-go-http-api/internal/models"
 	"lqkhoi-go-http-api/pkg/structs"
+	"lqkhoi-go-http-api/pkg/utils"
 
 	"gorm.io/gorm"
 )
 
 type ProjectRepository interface {
-	Create(project *models.Project) (*models.Project, error)
-	Find(filter dto.ProjectFilter) ([]models.Project, error)
+	Create(ctx context.Context, project *models.Project) (*models.Project, error)
+	Find(ctx context.Context, filter dto.ProjectFilter) ([]models.Project, error)
+	FindByID(ctx context.Context, id int) (*models.Project, error)
+	Update(ctx context.Context, id int, updateMap *map[string]any) error
 }
 
 type projectRepository struct {
@@ -26,7 +31,7 @@ func NewProjectRepository(db *gorm.DB) ProjectRepository {
 	}
 }
 
-func (r *projectRepository) Create(project *models.Project) (*models.Project, error) {
+func (r *projectRepository) Create(ctx context.Context, project *models.Project) (*models.Project, error) {
 	if err := r.db.Create(project).Error; err != nil {
 		slog.Error("Can not create project", "error", err)
 		return nil, structs.ErrDataViolateConstraint
@@ -34,7 +39,7 @@ func (r *projectRepository) Create(project *models.Project) (*models.Project, er
 	return project, nil
 }
 
-func (r *projectRepository) Find(filter dto.ProjectFilter) ([]models.Project, error) {
+func (r *projectRepository) Find(ctx context.Context, filter dto.ProjectFilter) ([]models.Project, error) {
 	var projects []models.Project
 	query := r.db.Model(&models.Project{})
 
@@ -59,8 +64,6 @@ func (r *projectRepository) Find(filter dto.ProjectFilter) ([]models.Project, er
 		query = query.Where("end_date <= ?", filter.EndDateBefore.Format("2006-01-02"))
 	}
 
-	query = query.Preload("Manager")
-
 	// Execute the query
 	if err := query.Find(&projects).Error; err != nil {
 		fmt.Printf("Error finding projects: %v\n", err)
@@ -68,4 +71,37 @@ func (r *projectRepository) Find(filter dto.ProjectFilter) ([]models.Project, er
 	}
 
 	return projects, nil
+}
+
+func (r *projectRepository) FindByID(ctx context.Context, id int) (*models.Project, error) {
+	var project models.Project
+	err := r.db.First(&project, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, structs.ErrProjectNotExist
+		}
+		slog.Error("Internal database failed", "err", err)
+		return nil, err
+	}
+	return &project, nil
+}
+
+func (r *projectRepository) Update(ctx context.Context, id int, updateMap *map[string]any) error {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "ProjectRepository",
+		"handler", "Update",
+		"project_id", id,
+	)
+
+	logger.Debug("Starting update project process")
+
+	if err := r.db.Model(&models.Project{}).Where("id = ?", id).Updates(*updateMap).Error; err != nil {
+		logger.Error("Failed to update project", "error", err)
+		return fmt.Errorf("failed to update project: %w", err)
+	}
+
+	logger.Info("Succesfully updated")
+
+	return nil
 }

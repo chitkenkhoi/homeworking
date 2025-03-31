@@ -54,7 +54,7 @@ func (app *App) Setup() error {
 	projectRepository := repository.NewProjectRepository(db)
 
 	userService := service.NewUserService(userRepository)
-	projectService := service.NewProjectService(projectRepository)
+	projectService := service.NewProjectService(projectRepository,userRepository)
 
 	userHandler := handler.NewUserHandler(userService)
 	projectHandler := handler.NewProjectHandler(projectService)

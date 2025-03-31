@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"log"
 	"log/slog"
@@ -15,12 +16,12 @@ import (
 )
 
 type UserService interface {
-	CreateUser(user *models.User) (*models.User, error)
-	FindByID(id int) (*models.User, error)
-	Login(rq dto.LoginRequest) (string, error)
-	GetAllUsers() ([]models.User, error)
-	UpdateUser(user *models.User) error
-	DeleteUser(id int) error
+	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
+	FindByID(ctx context.Context, id int) (*models.User, error)
+	Login(ctx context.Context, rq dto.LoginRequest) (string, error)
+	GetAllUsers(ctx context.Context) ([]models.User, error)
+	UpdateUser(ctx context.Context, user *models.User) error
+	DeleteUser(ctx context.Context, id int) error
 }
 
 type userService struct {
@@ -33,7 +34,7 @@ func NewUserService(userRepository repository.UserRepository) UserService {
 	}
 }
 
-func (s *userService) CreateUser(user *models.User) (*models.User, error) {
+func (s *userService) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("Failed to hash password: %v", err)
@@ -43,11 +44,11 @@ func (s *userService) CreateUser(user *models.User) (*models.User, error) {
 		return nil, err
 	}
 	user.Password = string(hashedPassword)
-	return s.userRepository.Create(user)
+	return s.userRepository.Create(ctx, user)
 }
 
-func (s *userService) FindByID(id int) (*models.User, error) {
-	user, err := s.userRepository.FindByID(id)
+func (s *userService) FindByID(ctx context.Context, id int) (*models.User, error) {
+	user, err := s.userRepository.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, structs.ErrUserNotExist) {
 			slog.Error("User does not exist", "id", id)
@@ -59,11 +60,11 @@ func (s *userService) FindByID(id int) (*models.User, error) {
 	return user, nil
 }
 
-func (s *userService) Login(rq dto.LoginRequest) (string, error) {
+func (s *userService) Login(ctx context.Context, rq dto.LoginRequest) (string, error) {
 	var user *models.User
 	var err error
 
-	user, err = s.userRepository.FindByEmail(rq.Email)
+	user, err = s.userRepository.FindByEmail(ctx, rq.Email)
 	if err != nil {
 		log.Printf("Internal Database Error looking up email %q: %v", rq.Email, err)
 		return "", structs.ErrDatabaseFail
@@ -93,8 +94,8 @@ func (s *userService) Login(rq dto.LoginRequest) (string, error) {
 
 }
 
-func (s *userService) GetAllUsers() ([]models.User, error) {
-	users, err := s.userRepository.List()
+func (s *userService) GetAllUsers(ctx context.Context) ([]models.User, error) {
+	users, err := s.userRepository.List(ctx)
 	if err != nil {
 		slog.Error("Internal database fail", "error", err)
 		return nil, structs.ErrDatabaseFail
@@ -103,12 +104,12 @@ func (s *userService) GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-func (s *userService) UpdateUser(user *models.User) error {
-	return s.userRepository.Update(user)
+func (s *userService) UpdateUser(ctx context.Context, user *models.User) error {
+	return s.userRepository.Update(ctx, user)
 }
 
-func (s *userService) DeleteUser(id int) error {
-	err := s.userRepository.Delete(id)
+func (s *userService) DeleteUser(ctx context.Context, id int) error {
+	err := s.userRepository.Delete(ctx, id)
 	if err != nil {
 		if errors.Is(err, structs.ErrUserNotExist) {
 			slog.Error("Can not find user with", "id", id)

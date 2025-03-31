@@ -35,7 +35,6 @@ func NewSimpleRateLimiter(limit int, window time.Duration) fiber.Handler {
 			mu.Unlock() 
 			return c.Next()
 		}
-
 		v.count++
 		v.lastSeen = now
 		

@@ -15,6 +15,9 @@ type CacheRepository interface {
 	Get(ctx context.Context, key string) (string, error)
 	Set(ctx context.Context, key string, value any, exp int) error
 	Del(ctx context.Context, key string) error
+	Increment(ctx context.Context, key string) (int64, error)
+	Expire(ctx context.Context, key string, expiration time.Duration) error
+	GetTTL(ctx context.Context, key string) (time.Duration, error)
 }
 
 type redisRepository struct {
@@ -68,4 +71,23 @@ func (r *redisRepository) Del(ctx context.Context, key string) error {
 	}
 	slog.Debug("Successfully delete key", "key", key)
 	return nil
+}
+
+func (r *redisRepository) Increment(ctx context.Context, key string) (int64, error) {
+	return r.client.Incr(ctx, key).Result()
+}
+
+func (r *redisRepository) Expire(ctx context.Context, key string, expiration time.Duration) error {
+	return r.client.Expire(ctx, key, expiration).Err()
+}
+
+func (r *redisRepository) GetTTL(ctx context.Context, key string) (time.Duration, error) {
+	ttl, err := r.client.TTL(ctx, key).Result()
+    if err != nil {
+        if errors.Is(err, redis.Nil) {
+             return 0, err
+        }
+        return 0, err
+    }
+	return ttl, nil
 }

@@ -20,4 +20,5 @@ func SetupProjectRoutes(app *fiber.App, h *handler.ProjectHandler) {
 	projectManagerOnly.Get("/:projectId",h.GetProject)
 	projectManagerOnly.Put("/:projectId",h.UpdateProject)
 	projectManagerOnly.Delete("/:projectId",h.DeleteProject)
+	
 }

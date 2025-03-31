@@ -36,7 +36,8 @@ type UserResponse struct {
 	CurrentProjectName string `json:"current_project_name,omitempty"`
 }
 
-func (ur *UserResponse) MapToDto(user *models.User) {
+func MapToUserDto(user *models.User) *UserResponse {
+	ur := &UserResponse{}
 	ur.Email = user.Email
 	ur.Role = string(user.Role)
 	ur.FirstName = user.FirstName
@@ -47,4 +48,24 @@ func (ur *UserResponse) MapToDto(user *models.User) {
 	if user.CurrentProject != nil {
 		ur.CurrentProjectName = user.CurrentProject.Name
 	}
+	return ur
+}
+
+func MapToUserDtoSlice(users []models.User) []UserResponse {
+	urs := make([]UserResponse, 0, len(users))
+	for index, user := range users {
+		urs = append(urs, UserResponse{
+			Email:     user.Email,
+			Role:      string(user.Role),
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+		})
+		if user.CurrentProjectID != nil {
+			urs[index].CurrentProjectID = *user.CurrentProjectID
+		}
+		if user.CurrentProject != nil {
+			urs[index].CurrentProjectName = user.CurrentProject.Name
+		}
+	}
+	return urs
 }

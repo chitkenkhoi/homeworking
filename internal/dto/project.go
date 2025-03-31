@@ -42,7 +42,8 @@ type TeamMember struct {
 	LastName  string `json:"last_name"`
 }
 
-func (pr *ProjectResponse) MapToDto(project *models.Project) {
+func MapToProjectDto(project *models.Project) *ProjectResponse {
+	pr := &ProjectResponse{}
 	pr.Name = project.Name
 	pr.Description = project.Description
 	pr.StartDate = project.StartDate
@@ -60,13 +61,40 @@ func (pr *ProjectResponse) MapToDto(project *models.Project) {
 			pr.TeamMembers = append(pr.TeamMembers, team_member)
 		}
 	}
+	return pr
 }
 
 type ProjectFilter struct {
-	ID         *int
-	Name       *string
-	Status     *models.ProjectStatus
-	ManagerID  *int
-	StartDateAfter  *time.Time 
-	EndDateBefore    *time.Time
+	ID             *int
+	Name           *string
+	Status         *models.ProjectStatus
+	ManagerID      *int
+	StartDateAfter *time.Time
+	EndDateBefore  *time.Time
+}
+
+func MapToProjectDtoSlice(projects []models.Project) []ProjectResponse {
+	prs := make([]ProjectResponse, 0, len(projects))
+	for _, project := range projects {
+		prs = append(prs, ProjectResponse{
+			Name:        project.Name,
+			Description: project.Description,
+			StartDate:   project.StartDate,
+			EndDate:     project.EndDate,
+			Status:      string(project.Status),
+			ManagerID:   project.ManagerID,
+		})
+	}
+	return prs
+}
+
+type AddTeamMembersRequest struct {
+	UserIDs []int `json:"userIds" validate:"required,min=1,dive,gt=0"`
+}
+
+type UpdateProjectRequest struct {
+	Name        *string               `json:"name,omitempty" validate:"omitempty,min=2,max=255"`
+	Description *string               `json:"description,omitempty" validate:"omitempty,max=65535"`
+	EndDate     *time.Time            `json:"end_date,omitempty" validate:"omitempty"` // No gtfield=StartDate here as StartDate isn't part of the update request
+	Status      *models.ProjectStatus `json:"status,omitempty" validate:"omitempty,oneof=ACTIVE ON_HOLD COMPLETED CANCELLED"`
 }

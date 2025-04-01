@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"lqkhoi-go-http-api/config"
+	"lqkhoi-go-http-api/internal/config"
 	"lqkhoi-go-http-api/internal/handler"
 	"lqkhoi-go-http-api/internal/infrastructure"
 	"lqkhoi-go-http-api/internal/migration"
@@ -34,7 +34,7 @@ func New() *App {
 }
 
 func (app *App) Setup() error {
-	cfg, err := config.LoadConfig("./config")
+	cfg, err := config.LoadConfig("./internal/config")
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
@@ -51,13 +51,13 @@ func (app *App) Setup() error {
 		return err
 	}
 	userRepository := repository.NewUserRepository(db)
-	projectRepository := repository.NewProjectRepository(db)
+	projectRepository := repository.NewProjectRepository(db,cfg.DateTime)
 
 	userService := service.NewUserService(userRepository)
 	projectService := service.NewProjectService(projectRepository,userRepository)
 
 	userHandler := handler.NewUserHandler(userService)
-	projectHandler := handler.NewProjectHandler(projectService)
+	projectHandler := handler.NewProjectHandler(projectService,cfg.DateTime)
 
 	routes.SetupUserRoutes(app.server, userHandler)
 	routes.SetupProjectRoutes(app.server,projectHandler)

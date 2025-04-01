@@ -17,3 +17,5 @@ server:
     window: 1 #in minutes
     prefix: "rate_limit:"
 jwt_secret: "will-be-override-by-env-var"
+date_time:
+  format: "2006-01-02"

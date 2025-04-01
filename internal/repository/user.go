@@ -9,6 +9,7 @@ import (
 
 	"lqkhoi-go-http-api/internal/models"
 	"lqkhoi-go-http-api/pkg/structs"
+	"lqkhoi-go-http-api/pkg/utils"
 
 	"gorm.io/gorm"
 )
@@ -76,16 +77,29 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 }
 
 func (r *userRepository) Delete(ctx context.Context, id int) error {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserRepository",
+		"method", "Delete",
+		"user_id", id,
+	)
+
+	logger.Debug("Starting delete user process")
+
 	tx := r.db.Delete(&models.User{}, id)
 	err := tx.Error
 	if err != nil {
-		slog.Error("Internal database fail", "error", err)
-		return err
+		logger.Error("Internal database fail", "error", err)
+		return structs.ErrDatabaseFail
 	}
 
 	if tx.RowsAffected == 0 {
+		logger.Error("User with this id does not exist")
 		return structs.ErrUserNotExist
 	}
+
+	logger.Info("User is deleted")
+
 	return nil
 }
 

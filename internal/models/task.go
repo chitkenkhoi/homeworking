@@ -41,6 +41,6 @@ type Task struct {
 	DueDate     *time.Time    `json:"due_date"`
 
 	Assignee *User `gorm:"foreignKey:AssigneeID;references:ID" json:"assignee,omitempty"`
-	Project Project `gorm:"foreignKey:ProjectID;references:ID" json:"project"`
+	Project *Project `gorm:"foreignKey:ProjectID;references:ID" json:"project"`
 	Sprint *Sprint `gorm:"foreignKey:SprintID;references:ID" json:"sprint,omitempty"`
 }

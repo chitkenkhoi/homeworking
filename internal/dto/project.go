@@ -26,13 +26,15 @@ func (cpr *CreateProjectRequest) MapToProject(managerID int) *models.Project {
 }
 
 type ProjectResponse struct {
-	Name        string       `json:"name"`
-	Description string       `json:"description"`
-	StartDate   time.Time    `json:"start_date"`
-	EndDate     *time.Time   `json:"end_date,omitempty"`
-	Status      string       `json:"status"`
-	ManagerID   int          `json:"manager_id"`
-	TeamMembers []TeamMember `json:"team_members,omitempty"`
+	ID              int          `json:"id"`
+	Name            string       `json:"name"`
+	Description     string       `json:"description"`
+	StartDate       time.Time    `json:"start_date"`
+	EndDate         *time.Time   `json:"end_date,omitempty"`
+	Status          string       `json:"status"`
+	ManagerID       int          `json:"manager_id"`
+	TeamMembers     []TeamMember `json:"team_members,omitempty"`
+	TeamMemberCount *int         `json:"team_member_count,omitempty"`
 }
 
 type TeamMember struct {
@@ -44,23 +46,29 @@ type TeamMember struct {
 
 func MapToProjectDto(project *models.Project) *ProjectResponse {
 	pr := &ProjectResponse{}
+	pr.ID = project.ID
 	pr.Name = project.Name
 	pr.Description = project.Description
 	pr.StartDate = project.StartDate
 	pr.EndDate = project.EndDate
 	pr.Status = string(project.Status)
 	pr.ManagerID = project.ManagerID
-	if project.TeamMembers != nil {
-		for _, user := range project.TeamMembers {
-			team_member := TeamMember{
-				ID:        user.ID,
-				Email:     user.Email,
-				FirstName: user.FirstName,
-				LastName:  user.LastName,
-			}
-			pr.TeamMembers = append(pr.TeamMembers, team_member)
+	if len(project.TeamMembers) == 0 {
+		return pr
+	}
+	count := len(project.TeamMembers)
+	pr.TeamMemberCount = &count
+
+	pr.TeamMembers = make([]TeamMember, count)
+	for i, user := range project.TeamMembers {
+		pr.TeamMembers[i] = TeamMember{
+			ID:        user.ID,
+			Email:     user.Email,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
 		}
 	}
+
 	return pr
 }
 
@@ -77,6 +85,7 @@ func MapToProjectDtoSlice(projects []models.Project) []ProjectResponse {
 	prs := make([]ProjectResponse, 0, len(projects))
 	for _, project := range projects {
 		prs = append(prs, ProjectResponse{
+			ID:          project.ID,
 			Name:        project.Name,
 			Description: project.Description,
 			StartDate:   project.StartDate,
@@ -95,6 +104,6 @@ type AddTeamMembersRequest struct {
 type UpdateProjectRequest struct {
 	Name        *string               `json:"name,omitempty" validate:"omitempty,min=2,max=255"`
 	Description *string               `json:"description,omitempty" validate:"omitempty,max=65535"`
-	EndDate     *time.Time            `json:"end_date,omitempty" validate:"omitempty"` // No gtfield=StartDate here as StartDate isn't part of the update request
+	EndDate     *time.Time            `json:"end_date,omitempty" validate:"omitempty"`
 	Status      *models.ProjectStatus `json:"status,omitempty" validate:"omitempty,oneof=ACTIVE ON_HOLD COMPLETED CANCELLED"`
 }

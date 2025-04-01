@@ -1,7 +1,7 @@
 package infrastructure
 
 import(
-    "lqkhoi-go-http-api/config"
+    "lqkhoi-go-http-api/internal/config"
 
 	"github.com/redis/go-redis/v9"
 )

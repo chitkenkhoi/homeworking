@@ -3,7 +3,7 @@ package infrastructure
 import (
 	"fmt"
 
-	"lqkhoi-go-http-api/config"
+	"lqkhoi-go-http-api/internal/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"lqkhoi-go-http-api/internal/config"
 	"lqkhoi-go-http-api/internal/dto"
 	"lqkhoi-go-http-api/internal/models"
 	"lqkhoi-go-http-api/pkg/structs"
@@ -19,15 +20,18 @@ type ProjectRepository interface {
 	Find(ctx context.Context, filter dto.ProjectFilter) ([]models.Project, error)
 	FindByID(ctx context.Context, id int) (*models.Project, error)
 	Update(ctx context.Context, id int, updateMap *map[string]any) error
+	Delete(ctx context.Context, id int) error
 }
 
 type projectRepository struct {
-	db *gorm.DB
+	db  *gorm.DB
+	cfg config.DateTimeConfig
 }
 
-func NewProjectRepository(db *gorm.DB) ProjectRepository {
+func NewProjectRepository(db *gorm.DB, cfg config.DateTimeConfig) ProjectRepository {
 	return &projectRepository{
-		db: db,
+		db:  db,
+		cfg: cfg,
 	}
 }
 
@@ -40,35 +44,46 @@ func (r *projectRepository) Create(ctx context.Context, project *models.Project)
 }
 
 func (r *projectRepository) Find(ctx context.Context, filter dto.ProjectFilter) ([]models.Project, error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "ProjectRepository",
+		"method", "Find",
+	)
+
 	var projects []models.Project
 	query := r.db.Model(&models.Project{})
 
-	// Apply filters dynamically
 	if filter.ID != nil {
 		query = query.Where("id = ?", *filter.ID)
+		logger.Debug("Project ID is in the filter", "project_id", *filter.ID)
 	}
 	if filter.Name != nil && *filter.Name != "" {
-		// Using LIKE for partial name matching. Use "=" for exact match if needed.
 		query = query.Where("name LIKE ?", fmt.Sprintf("%%%s%%", *filter.Name))
+		logger.Debug("Project name is in the filter", "project_name", *filter.Name)
 	}
 	if filter.Status != nil {
 		query = query.Where("status = ?", *filter.Status)
+		logger.Debug("Project status is in the filter", "project_status", *filter.Status)
 	}
 	if filter.ManagerID != nil {
 		query = query.Where("manager_id = ?", *filter.ManagerID)
+		logger.Debug("Manager ID is in the filter", "project_id", *filter.ManagerID)
 	}
 	if filter.StartDateAfter != nil {
-		query = query.Where("start_date >= ?", filter.StartDateAfter.Format("2006-01-02"))
+		query = query.Where("start_date >= ?", filter.StartDateAfter.Format(r.cfg.Format))
+		logger.Debug("Start date is in the filter", "start_date_after", filter.StartDateAfter.Format(r.cfg.Format))
 	}
 	if filter.EndDateBefore != nil {
-		query = query.Where("end_date <= ?", filter.EndDateBefore.Format("2006-01-02"))
+		query = query.Where("end_date <= ?", filter.EndDateBefore.Format(r.cfg.Format))
+		logger.Debug("End date is in the filter", "end_date_after", filter.EndDateBefore.Format(r.cfg.Format))
 	}
 
 	// Execute the query
 	if err := query.Find(&projects).Error; err != nil {
-		fmt.Printf("Error finding projects: %v\n", err)
+		logger.Error("Error finding projects", "error", err)
 		return nil, fmt.Errorf("database error retrieving projects: %w", err)
 	}
+	logger.Debug("Found projects", "projects", projects)
 
 	return projects, nil
 }
@@ -90,7 +105,7 @@ func (r *projectRepository) Update(ctx context.Context, id int, updateMap *map[s
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "ProjectRepository",
-		"handler", "Update",
+		"method", "Update",
 		"project_id", id,
 	)
 
@@ -102,6 +117,33 @@ func (r *projectRepository) Update(ctx context.Context, id int, updateMap *map[s
 	}
 
 	logger.Info("Succesfully updated")
+
+	return nil
+}
+
+func (r *projectRepository) Delete(ctx context.Context, id int) error {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "ProjectRepository",
+		"method", "Delete",
+		"project_id", id,
+	)
+
+	logger.Debug("Starting delete project process")
+
+	tx := r.db.Delete(&models.Project{}, id)
+	err := tx.Error
+	if err != nil {
+		logger.Error("Internal database fail", "error", err)
+		return structs.ErrDatabaseFail
+	}
+
+	if tx.RowsAffected == 0 {
+		logger.Error("Project with this id does not exist")
+		return structs.ErrProjectNotExist
+	}
+
+	logger.Info("Project is deleted")
 
 	return nil
 }

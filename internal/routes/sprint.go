@@ -1,32 +1,23 @@
 package routes
 
+import (
+	"lqkhoi-go-http-api/internal/handler"
+	"lqkhoi-go-http-api/internal/middlewares"
+	"lqkhoi-go-http-api/internal/models"
 
-// import (
-// 	"lqkhoi-go-http-api/internal/handler"
-// 	"lqkhoi-go-http-api/internal/middlewares"
+	"github.com/gofiber/fiber/v2"
+)
 
-// 	"github.com/gofiber/fiber/v2"
-// )
+func SetupSprintRoutes(app *fiber.App, h *handler.SprintHandler) {
+	authenticated := app.Group("/")
+	authenticated.Use(middlewares.AuthMiddleware)
 
-// func SetupSprintRoutes(app *fiber.App) {
-// 	app.Post("/users", sampleHanlder)
-// 	app.Post("/login", sampleHanlder)
+	projectManagerSprint := authenticated.Group("/sprints")
+	projectManagerSprint.Use(middlewares.RequireRoleIs(models.ProjectManager))
 
-// 	authenticated := app.Group("/")
-// 	authenticated.Use(middlewares.AuthMiddleware())
-
-// 	authenticated.Get("/me", sampleHanlder)
-
-// 	ownerOrAdmin := authenticated.Group("/users/:userId")
-// 	ownerOrAdmin.Use(middlewares.RequireOwnerOrAdmin())
-
-// 	ownerOrAdmin.Get("/", sampleHanlder)
-// 	ownerOrAdmin.Put("/", sampleHanlder)
-// 	ownerOrAdmin.Delete("/", sampleHanlder)
-
-// 	adminOnly := authenticated.Group("/")
-// 	adminOnly.Use(middlewares.RequireAdmin())
-
-// 	adminOnly.Get("/users", sampleHanlder)
-
-// }
+	projectManagerSprint.Post("/", h.CreateSprint)
+	projectManagerSprint.Get("/", h.ListSprints)
+	projectManagerSprint.Get("/:sprintId", h.GetSprint)
+	projectManagerSprint.Put("/:sprintId")
+	projectManagerSprint.Delete("/:sprintId", h.DeleteSprint)
+}

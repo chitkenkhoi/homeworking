@@ -28,6 +28,7 @@ type LoginRequest struct {
 }
 
 type UserResponse struct {
+	ID                 int    `json:"id"`
 	Email              string `json:"email"`
 	Role               string `json:"role"`
 	FirstName          string `json:"first_name"`
@@ -38,6 +39,7 @@ type UserResponse struct {
 
 func MapToUserDto(user *models.User) *UserResponse {
 	ur := &UserResponse{}
+	ur.ID = user.ID
 	ur.Email = user.Email
 	ur.Role = string(user.Role)
 	ur.FirstName = user.FirstName
@@ -55,6 +57,7 @@ func MapToUserDtoSlice(users []models.User) []UserResponse {
 	urs := make([]UserResponse, 0, len(users))
 	for index, user := range users {
 		urs = append(urs, UserResponse{
+			ID:        user.ID,
 			Email:     user.Email,
 			Role:      string(user.Role),
 			FirstName: user.FirstName,

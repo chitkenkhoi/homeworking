@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"log"
+	"log/slog"
+	"sync"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -12,14 +13,23 @@ type ErrorResponse struct {
 	Value string `json:"value,omitempty"`
 }
 
+var (
+	validate *validator.Validate
+	once     sync.Once
+)
+
+func initValidator() {
+	validate = validator.New()
+}
+
 func ValidateStruct(payload any) []*ErrorResponse {
+	once.Do(initValidator)
 	var errs []*ErrorResponse
-	validate := validator.New()
 	err := validate.Struct(payload)
 	if err != nil {
 		validationErrors, ok := err.(validator.ValidationErrors)
 		if !ok {
-			log.Printf("Unexpected validation error type: %T\n", err)
+			slog.Error("Unexpected validation error type", "error", err)
 			return errs
 		}
 
@@ -32,4 +42,22 @@ func ValidateStruct(payload any) []*ErrorResponse {
 		}
 	}
 	return errs
+}
+
+func ValidateStructForConfig(payload any) error {
+	once.Do(initValidator)
+	err := validate.Struct(payload)
+	if err != nil {
+		validationErrors, ok := err.(validator.ValidationErrors)
+		if !ok {
+			slog.Error("Unexpected validation error type", "error", err)
+			return err
+		}
+
+		for _, err := range validationErrors {
+			slog.Error("Config invalid", "error", err)
+		}
+	}
+	slog.Info("Config are valid")
+	return err
 }

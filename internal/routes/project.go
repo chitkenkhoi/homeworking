@@ -15,10 +15,11 @@ func SetupProjectRoutes(app *fiber.App, h *handler.ProjectHandler) {
 	projectManagerOnly := authenticated.Group("/projects")
 	projectManagerOnly.Use(middlewares.RequireRoleIs(models.ProjectManager))
 
-	projectManagerOnly.Post("/",h.CreateProjectHandler)
-	projectManagerOnly.Get("/",h.ListProjectsHanlder)
-	projectManagerOnly.Get("/:projectId",h.GetProject)
-	projectManagerOnly.Put("/:projectId",h.UpdateProject)
-	projectManagerOnly.Delete("/:projectId",h.DeleteProject)
-	
+	projectManagerOnly.Post("/", h.CreateProjectHandler)
+	projectManagerOnly.Post("/:projectId", h.AddTeamMembers)
+	projectManagerOnly.Get("/", h.ListProjectsHanlder)
+	projectManagerOnly.Get("/:projectId", h.GetProject)
+	projectManagerOnly.Put("/:projectId", h.UpdateProject)
+	projectManagerOnly.Delete("/:projectId", h.DeleteProject)
+
 }

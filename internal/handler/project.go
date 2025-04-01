@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"log/slog"
 	"strconv"
 	"time"
 
+	"lqkhoi-go-http-api/internal/config"
 	"lqkhoi-go-http-api/internal/dto"
 	"lqkhoi-go-http-api/internal/models"
 	"lqkhoi-go-http-api/internal/service"
@@ -19,11 +19,13 @@ import (
 
 type ProjectHandler struct {
 	projectService service.ProjectService
+	cfg            config.DateTimeConfig
 }
 
-func NewProjectHandler(projectService service.ProjectService) *ProjectHandler {
+func NewProjectHandler(projectService service.ProjectService, cfg config.DateTimeConfig) *ProjectHandler {
 	return &ProjectHandler{
 		projectService: projectService,
+		cfg:            cfg,
 	}
 }
 
@@ -34,16 +36,17 @@ func (h *ProjectHandler) CreateProjectHandler(c *fiber.Ctx) error {
 			createErrorResponse("Cannot parse JSON", nil))
 	}
 
-	errs := utils.ValidateStruct(*input) // Pass the struct value
+	errs := utils.ValidateStruct(*input)
 	if errs != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("Validation failed", errs))
 	}
 
 	log.Printf("Validation successful for input: %+v\n", *input)
-
 	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
 	project := input.MapToProject(userClaims.UserID)
+	// //optimize memory here
+	//input = nil
 	ctx := c.UserContext()
 
 	if project, err := h.projectService.CreateProject(ctx, project); err != nil {
@@ -92,10 +95,8 @@ func (h *ProjectHandler) ListProjectsHanlder(c *fiber.Ctx) error {
 		}
 	}
 
-	dateFormat := "2006-01-02"
-
 	if startDateStr := c.Query("startdate"); startDateStr != "" {
-		startDate, err := time.Parse(dateFormat, startDateStr)
+		startDate, err := time.Parse(h.cfg.Format, startDateStr)
 		if err != nil {
 			parseErrors = append(parseErrors, fmt.Sprintf("invalid 'startdate' format (use YYYY-MM-DD): %s", startDateStr))
 		} else {
@@ -104,7 +105,7 @@ func (h *ProjectHandler) ListProjectsHanlder(c *fiber.Ctx) error {
 	}
 
 	if endDateStr := c.Query("enddate"); endDateStr != "" {
-		endDate, err := time.Parse(dateFormat, endDateStr)
+		endDate, err := time.Parse(h.cfg.Format, endDateStr)
 		if err != nil {
 			parseErrors = append(parseErrors, fmt.Sprintf("invalid 'enddate' format (use YYYY-MM-DD): %s", endDateStr))
 		} else {
@@ -131,14 +132,20 @@ func (h *ProjectHandler) ListProjectsHanlder(c *fiber.Ctx) error {
 }
 
 func (h *ProjectHandler) GetProject(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("projectId")
-	if err != nil || id <= 0 {
-		slog.Error("invalid project id", "error", err)
-		return c.Status(fiber.StatusBadRequest).JSON(
-			createErrorResponse("invalid project id", nil))
+	ctx := c.UserContext()
+	baseLogger := utils.LoggerFromContext(ctx)
+
+	logger := baseLogger.With(
+		"component", "ProjectHandler",
+		"handler", "GetProject",
+	)
+
+	id, err := verifyIdParamInt(c, logger, "projectId")
+	if err != nil {
+		logger.Error("Invalid project id")
+		return err
 	}
 
-	ctx := c.UserContext()
 	project, err := h.projectService.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, structs.ErrProjectNotExist) {
@@ -152,6 +159,8 @@ func (h *ProjectHandler) GetProject(c *fiber.Ctx) error {
 
 	} else {
 		output := dto.MapToProjectDto(project)
+
+		logger.Debug("Data response is availabe", "data", output)
 
 		return c.Status(fiber.StatusFound).JSON(
 			createSuccessResponse("found project", output))
@@ -167,15 +176,11 @@ func (h *ProjectHandler) UpdateProject(c *fiber.Ctx) error {
 		"handler", "UpdateProject",
 	)
 
-	projectID, err := c.ParamsInt("projectId")
-	if err != nil || projectID <= 0 {
-		logger.Error("Error parsing project ID",
-			"projectID", c.Params("projectId"),
-			"error", err)
-		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Invalid project ID format", nil))
+	projectID, err := verifyIdParamInt(c, logger, "projectId")
+	if err != nil {
+		logger.Error("Invalid project id")
+		return err
 	}
-
-	logger.Debug("Valid project ID parameter", "projectID", projectID)
 
 	input := &dto.UpdateProjectRequest{}
 	if err = c.BodyParser(input); err != nil {
@@ -189,7 +194,9 @@ func (h *ProjectHandler) UpdateProject(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Validation failed", nil))
 	}
 
-	logger.Debug("Validation finish successfully for input", "input", input)
+	logger.Debug("Validation finish successfully for input", "input", *input)
+	// //optimize memory here
+	//input = nil
 
 	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
 
@@ -205,7 +212,36 @@ func (h *ProjectHandler) UpdateProject(c *fiber.Ctx) error {
 }
 
 func (h *ProjectHandler) DeleteProject(c *fiber.Ctx) error {
-	return nil
+	ctx := c.UserContext()
+	baseLogger := utils.LoggerFromContext(ctx)
+
+	logger := baseLogger.With(
+		"component", "ProjectHandler",
+		"handler", "DeleteProject",
+	)
+	projectID, err := verifyIdParamInt(c, logger, "projectId")
+	if err != nil {
+		logger.Error("Invalid project id")
+		return err
+	}
+
+	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
+
+	if err := h.projectService.DeleteProject(ctx, userClaims.UserID, projectID); err != nil {
+		if errors.Is(err, structs.ErrDatabaseFail) {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createErrorResponse("Internal server error", nil))
+		} else {
+			if errors.Is(err, structs.ErrProjectNotExist) {
+				return c.Status(fiber.StatusNotFound).JSON(createErrorResponse("Project does not exist", err.Error()))
+			} else {
+				return c.Status(fiber.StatusForbidden).JSON(createErrorResponse("Authorize failed", err.Error()))
+			}
+		}
+	}
+	logger.Info("Delete project successfully", "project_id", projectID)
+
+	return c.Status(fiber.StatusAccepted).JSON(createErrorResponse("Delete project successfully", nil))
 }
 
 func (h *ProjectHandler) AddTeamMembers(c *fiber.Ctx) error {
@@ -217,15 +253,11 @@ func (h *ProjectHandler) AddTeamMembers(c *fiber.Ctx) error {
 		"handler", "AddTeamMembersHandler",
 	)
 
-	projectID, err := c.ParamsInt("projectId")
-	if err != nil || projectID <= 0 {
-		logger.Error("Error parsing project ID",
-			"projectID", c.Params("projectId"),
-			"error", err)
-		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Invalid project ID format", nil))
+	projectID, err := verifyIdParamInt(c, logger, "projectId")
+	if err != nil {
+		logger.Error("Invalid project id")
+		return err
 	}
-
-	logger.Debug("Valid project ID parameter", "projectID", projectID)
 
 	input := &dto.AddTeamMembersRequest{}
 	if err = c.BodyParser(input); err != nil {

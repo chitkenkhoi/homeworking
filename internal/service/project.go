@@ -19,6 +19,8 @@ type ProjectService interface {
 	FindByID(ctx context.Context, id int) (*models.Project, error)
 	AddTeamMembers(ctx context.Context, userID, projectID int, userIDsToAdd []int) (int, error)
 	UpdateProject(ctx context.Context, userID, projectId int, data *dto.UpdateProjectRequest) (*models.Project, error)
+	DeleteProject(ctx context.Context, userID, projectID int) error
+	GetAndVerifyProjectManager(ctx context.Context, userID, projectID int) (*models.Project, error)
 }
 
 type projectService struct {
@@ -31,6 +33,37 @@ func NewProjectService(projectRepository repository.ProjectRepository, userRepos
 		projectRepository: projectRepository,
 		userRepository:    userRepository,
 	}
+}
+
+func (s *projectService) GetAndVerifyProjectManager(ctx context.Context, userID, projectID int) (*models.Project, error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "ProjectService",
+		"method", "getAndVerifyProjectManager",
+		"project_id", projectID,
+		"requestor_id", userID,
+	)
+
+	logger.Debug("Fetching project by ID")
+	project, err := s.projectRepository.FindByID(ctx, projectID)
+	if err != nil {
+		if errors.Is(err, structs.ErrProjectNotExist) {
+			logger.Warn(structs.MsgProjectNotExist)
+			return nil, structs.ErrProjectNotExist
+		}
+		logger.Error(structs.MsgInternalDatabaseErrFetchingProject, "error", err)
+		return nil, structs.ErrDatabaseFail
+	}
+
+	logger.Debug(structs.MsgVerifyingProjectManager)
+	if project.ManagerID != userID {
+		logger.Warn(structs.MsgAuthorizationFailure,
+			"manager_id", project.ManagerID)
+		return nil, structs.ErrUserNotManageProject
+	}
+
+	logger.Debug(structs.MsgProjectAuthorized)
+	return project, nil
 }
 
 func (s *projectService) CreateProject(ctx context.Context, project *models.Project) (*models.Project, error) {
@@ -127,37 +160,28 @@ func (s *projectService) AddTeamMembers(ctx context.Context, userID, projectID i
 	return len(validUserIDs), validationErr
 }
 
-func (s *projectService) UpdateProject(ctx context.Context, userID, projectId int, data *dto.UpdateProjectRequest) (*models.Project, error) {
+func (s *projectService) UpdateProject(ctx context.Context, userID, projectID int, data *dto.UpdateProjectRequest) (*models.Project, error) {
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "ProjectService",
 		"handler", "UpdateProject",
-		"project_id", projectId,
+		"project_id", projectID,
 		"user_id", userID,
 	)
 
 	logger.Debug("Starting to update project")
 
-	project, err := s.projectRepository.FindByID(ctx, projectId)
+	project, err := s.GetAndVerifyProjectManager(ctx, userID, projectID)
 	if err != nil {
 		if errors.Is(err, structs.ErrProjectNotExist) {
-			logger.Error("Project does not exist")
-			return nil, fmt.Errorf("%w with the id %v", structs.ErrProjectNotExist, projectId)
+			return nil, fmt.Errorf("cannot update project: %w with id %d", err, projectID)
 		}
-		logger.Error("Internal database failed", "error", err)
-		return nil, structs.ErrDatabaseFail
+		if errors.Is(err, structs.ErrUserNotManageProject) {
+			return nil, fmt.Errorf("user %d cannot update project %d: %w", userID, projectID, err)
+		}
+		logger.Error("Failed initial project retrieval or authorization", "error", err)
+		return nil, err
 	}
-
-	logger.Debug("Starting to validate project manager")
-
-	if project.ManagerID != projectId {
-		logger.Error("Authorization failure",
-			"requestor_id", userID, "manager_id", project.ManagerID)
-		return nil, fmt.Errorf("%w with the id %v", structs.ErrUserNotManageProject, projectId)
-	}
-
-	logger.Debug("Authorization success",
-		"requestor_id", userID, "manager_id", project.ManagerID)
 
 	logger.Debug("Starting to validate end date")
 
@@ -189,19 +213,52 @@ func (s *projectService) UpdateProject(ctx context.Context, userID, projectId in
 		updateMap["status"] = *data.Status
 	}
 	if len(updateMap) == 0 {
-		logger.Debug("No update operation perform")
+		logger.Info("No fields to update, returning current project")
 		return project, nil
 	}
 
-	logger.Debug("Start update operation with input", "input", updateMap)
+	logger.Debug("Attempting project update operation", "input", updateMap)
 
-	if err := s.projectRepository.Update(ctx, projectId, &updateMap); err != nil {
-		logger.Error("Failed to update project", "error", err)
-		return nil, fmt.Errorf("failed to update project: %w", err)
-	} else {
-		logger.Info("Succesfully updated")
+	if err := s.projectRepository.Update(ctx, projectID, &updateMap); err != nil {
+		logger.Error("Failed to update project in repository", "error", err)
+		return nil, fmt.Errorf("repository failed to update project: %w", err)
 	}
 
-	updatedProject, _ := s.projectRepository.FindByID(ctx, projectId)
+	logger.Info("Succesfully updated")
+
+	updatedProject, _ := s.projectRepository.FindByID(ctx, projectID)
 	return updatedProject, nil
+}
+
+func (s *projectService) DeleteProject(ctx context.Context, userID, projectID int) error {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "ProjectService",
+		"method", "DeleteProject",
+		"project_id", projectID,
+		"requestor_id", userID,
+	)
+
+	logger.Debug("Starting project deletion process")
+
+	_, err := s.GetAndVerifyProjectManager(ctx, userID, projectID)
+	if err != nil {
+		if errors.Is(err, structs.ErrProjectNotExist) {
+			return fmt.Errorf("cannot delete project: %w with id %d", err, projectID)
+		}
+		if errors.Is(err, structs.ErrUserNotManageProject) {
+			return fmt.Errorf("user %d cannot delete project %d: %w", userID, projectID, err)
+		}
+		logger.Error("Failed initial project retrieval or authorization for deletion", "error", err)
+		return err
+	}
+
+	logger.Debug("Authorization successful, attempting project deletion")
+	if err := s.projectRepository.Delete(ctx, projectID); err != nil {
+		logger.Error("Failed to delete project in repository", "error", err)
+		return fmt.Errorf("repository delete failed for project %d: %w", projectID, structs.ErrDatabaseFail)
+	}
+
+	logger.Info("Successfully deleted project")
+	return nil
 }

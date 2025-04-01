@@ -22,6 +22,7 @@ func NewSimpleRateLimiter(limit int, window time.Duration) fiber.Handler {
 		ip := c.IP() 
 
 		mu.Lock() 
+		defer mu.Unlock()
 
 		v, exists := visitors[ip]
 		now := time.Now()
@@ -32,7 +33,6 @@ func NewSimpleRateLimiter(limit int, window time.Duration) fiber.Handler {
 				lastSeen:   now,
 				windowStart: now,
 			}
-			mu.Unlock() 
 			return c.Next()
 		}
 		v.count++
@@ -44,13 +44,11 @@ func NewSimpleRateLimiter(limit int, window time.Duration) fiber.Handler {
 
 			c.Set("Retry-After", fmt.Sprintf("%.0f", retryAfter.Seconds()))
 
-			mu.Unlock()
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"message": fmt.Sprintf("Rate limit exceeded. Try again in %.0f seconds", retryAfter.Seconds()),
 			})
 		}
 
-		mu.Unlock()
 		return c.Next()
 	}
 }

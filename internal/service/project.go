@@ -15,7 +15,7 @@ import (
 
 type ProjectService interface {
 	CreateProject(ctx context.Context, project *models.Project) (*models.Project, error)
-	ListProjects(ctx context.Context, filter dto.ProjectFilter) ([]models.Project, error)
+	ListProjects(ctx context.Context, filter dto.ProjectFilter) ([]*models.Project, error)
 	FindByID(ctx context.Context, id int) (*models.Project, error)
 	AddTeamMembers(ctx context.Context, userID, projectID int, userIDsToAdd []int) (int, error)
 	UpdateProject(ctx context.Context, userID, projectId int, data *dto.UpdateProjectRequest) (*models.Project, error)
@@ -70,7 +70,7 @@ func (s *projectService) CreateProject(ctx context.Context, project *models.Proj
 	return s.projectRepository.Create(ctx, project)
 }
 
-func (s *projectService) ListProjects(ctx context.Context, filter dto.ProjectFilter) ([]models.Project, error) {
+func (s *projectService) ListProjects(ctx context.Context, filter dto.ProjectFilter) ([]*models.Project, error) {
 	projects, err := s.projectRepository.Find(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list projects: %w", err)
@@ -95,7 +95,7 @@ func (s *projectService) AddTeamMembers(ctx context.Context, userID, projectID i
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "ProjectService",
-		"handler", "AddTeamMembers",
+		"method", "AddTeamMembers",
 		"project_id", projectID,
 		"requestor_id", userID,
 		"users_to_add", userIDsToAdd,
@@ -164,7 +164,7 @@ func (s *projectService) UpdateProject(ctx context.Context, userID, projectID in
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "ProjectService",
-		"handler", "UpdateProject",
+		"method", "UpdateProject",
 		"project_id", projectID,
 		"user_id", userID,
 	)
@@ -219,9 +219,9 @@ func (s *projectService) UpdateProject(ctx context.Context, userID, projectID in
 
 	logger.Debug("Attempting project update operation", "input", updateMap)
 
-	if err := s.projectRepository.Update(ctx, projectID, &updateMap); err != nil {
+	if err := s.projectRepository.Update(ctx, projectID, updateMap); err != nil {
 		logger.Error("Failed to update project in repository", "error", err)
-		return nil, fmt.Errorf("repository failed to update project: %w", err)
+		return nil, structs.ErrDatabaseFail
 	}
 
 	logger.Info("Succesfully updated")

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"log/slog"
 
@@ -19,8 +20,9 @@ type UserService interface {
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	FindByID(ctx context.Context, id int) (*models.User, error)
 	Login(ctx context.Context, rq dto.LoginRequest) (string, error)
-	GetAllUsers(ctx context.Context) ([]models.User, error)
-	UpdateUser(ctx context.Context, user *models.User) error
+	GetAllUsers(ctx context.Context) ([]*models.User, error)
+	UpdateUser(ctx context.Context, userID int,
+		data *dto.UpdateUserRequest) (*models.User, error)
 	DeleteUser(ctx context.Context, id int) error
 }
 
@@ -94,7 +96,7 @@ func (s *userService) Login(ctx context.Context, rq dto.LoginRequest) (string, e
 
 }
 
-func (s *userService) GetAllUsers(ctx context.Context) ([]models.User, error) {
+func (s *userService) GetAllUsers(ctx context.Context) ([]*models.User, error) {
 	users, err := s.userRepository.List(ctx)
 	if err != nil {
 		slog.Error("Internal database fail", "error", err)
@@ -104,8 +106,42 @@ func (s *userService) GetAllUsers(ctx context.Context) ([]models.User, error) {
 	return users, nil
 }
 
-func (s *userService) UpdateUser(ctx context.Context, user *models.User) error {
-	return s.userRepository.Update(ctx, user)
+func (s *userService) UpdateUser(ctx context.Context, userID int,
+	data *dto.UpdateUserRequest) (*models.User, error) {
+	logger := utils.LoggerFromContext(ctx).With(
+		"component", "UserService",
+		"handler", "UpdateUser",
+		"user_id", userID,
+	)
+
+	logger.Debug("Starting to update user")
+	updateMap := make(map[string]any)
+
+	if data.FirstName != nil {
+		updateMap["first_name"] = *data.FirstName
+	}
+	if data.LastName != nil {
+		updateMap["last_name"] = *data.LastName
+	}
+	if len(updateMap) == 0 {
+		logger.Info("No fields to update, returning current user")
+		return s.userRepository.FindByID(ctx, userID)
+	}
+
+	logger.Debug("Attempting project update operation", "input", updateMap)
+
+	if err := s.userRepository.Update(ctx, userID, updateMap); err != nil {
+		logger.Error("Failed to update user in repository", "error", err)
+		if errors.Is(err, structs.ErrUserNotExist) {
+			return nil, fmt.Errorf("repository failed to update user: %w", err)
+		}
+		return nil, structs.ErrDatabaseFail
+	}
+
+	logger.Info("Succesfully updated")
+
+	updatedProject, _ := s.userRepository.FindByID(ctx, userID)
+	return updatedProject, nil
 }
 
 func (s *userService) DeleteUser(ctx context.Context, id int) error {

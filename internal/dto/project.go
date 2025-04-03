@@ -81,7 +81,7 @@ type ProjectFilter struct {
 	EndDateBefore  *time.Time
 }
 
-func MapToProjectDtoSlice(projects []models.Project) []ProjectResponse {
+func MapToProjectDtoSlice(projects []*models.Project) []ProjectResponse {
 	prs := make([]ProjectResponse, 0, len(projects))
 	for _, project := range projects {
 		prs = append(prs, ProjectResponse{

@@ -53,7 +53,7 @@ func MapToUserDto(user *models.User) *UserResponse {
 	return ur
 }
 
-func MapToUserDtoSlice(users []models.User) []UserResponse {
+func MapToUserDtoSlice(users []*models.User) []UserResponse {
 	urs := make([]UserResponse, 0, len(users))
 	for index, user := range users {
 		urs = append(urs, UserResponse{
@@ -71,4 +71,9 @@ func MapToUserDtoSlice(users []models.User) []UserResponse {
 		}
 	}
 	return urs
+}
+
+type UpdateUserRequest struct {
+	FirstName *string `json:"first_name,omitempty" validate:"omitempty,min=2,max=100"`
+	LastName  *string `json:"last_name,omitempty" validate:"omitempty,min=2,max=100"`
 }

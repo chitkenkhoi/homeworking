@@ -195,8 +195,6 @@ func (h *ProjectHandler) UpdateProject(c *fiber.Ctx) error {
 	}
 
 	logger.Debug("Validation finish successfully for input", "input", *input)
-	// //optimize memory here
-	//input = nil
 
 	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
 
@@ -207,6 +205,8 @@ func (h *ProjectHandler) UpdateProject(c *fiber.Ctx) error {
 		}
 		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Validation error", err.Error()))
 	}
+	// //optimize memory here
+	//input = nil
 	output := dto.MapToProjectDto(updatedProject)
 	return c.Status(fiber.StatusAccepted).JSON(createSuccessResponse("Project has been updated", output))
 }

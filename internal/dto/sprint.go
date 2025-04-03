@@ -7,11 +7,11 @@ import (
 )
 
 type CreateSprintRequest struct {
-	Name      string    `json:"name" validate:"required,min=2"`
+	Name      string    `json:"name"       validate:"required,min=2"`
 	StartDate time.Time `json:"start_date" validate:"required"`
-	EndDate   time.Time `json:"end_date" validate:"required,gtfield=StartDate"`
+	EndDate   time.Time `json:"end_date"   validate:"required,gtfield=StartDate"`
 	ProjectID int       `json:"project_id" validate:"required,min=1"`
-	Goal      string    `json:"goal" validate:"rqeuired,min=5"`
+	Goal      string    `json:"goal"       validate:"required,min=5"`
 }
 
 func (csr *CreateSprintRequest) MapToSprint() *models.Sprint {
@@ -82,12 +82,15 @@ func MapToSprintResponse(sprint *models.Sprint) *SprintResponse {
 	return sr
 }
 
-func MapToSprintResponseSlice(sprints []models.Sprint) []SprintResponse {
+func MapToSprintResponseSlice(sprints []*models.Sprint) []SprintResponse {
+	if sprints == nil {
+		return []SprintResponse{}
+	}
 	responses := make([]SprintResponse, len(sprints))
 
 	for i := range sprints {
 		sprints[i].Tasks = nil
-		responses[i] = *MapToSprintResponse(&sprints[i])
+		responses[i] = *MapToSprintResponse(sprints[i])
 	}
 
 	return responses
@@ -99,4 +102,11 @@ type SprintFilter struct {
 	ProjectID      *int
 	StartDateAfter *time.Time
 	EndDateBefore  *time.Time
+}
+
+type UpdateSprintRequest struct {
+	Name      *string    `json:"name,omitempty"       validate:"omitempty,min=2"`
+	StartDate *time.Time `json:"start_date,omitempty" validate:"omitempty"`
+	EndDate   *time.Time `json:"end_date,omitempty"   validate:"omitempty,gtfield=StartDate"`
+	Goal      *string    `json:"goal,omitempty"       validate:"omitempty,min=5"`
 }

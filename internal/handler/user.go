@@ -161,6 +161,48 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	}
 }
 
+func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	logger := utils.LoggerFromContext(ctx).With(
+		"component", "UserHandler",
+		"handler", "UpdateUser",
+	)
+	id, err := verifyIdParamInt(c, logger, "userId")
+	if err != nil {
+		logger.Error("Invalid project id")
+		return err
+	}
+
+	input := &dto.UpdateUserRequest{}
+	if err = c.BodyParser(input); err != nil {
+		logger.Error("Cannot parse JSON", "error", err)
+		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Cannot parse JSON", nil))
+	}
+
+	errs := utils.ValidateStruct(*input)
+	if errs != nil {
+		logger.Error("Validation failed", "errors", errs)
+		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Validation failed", nil))
+	}
+
+	logger.Debug("Validation finish successfully for input", "input", *input)
+	updatedUser, err := h.userService.UpdateUser(ctx, id, input)
+	if err != nil {
+		if errors.Is(err, structs.ErrDatabaseFail) {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createErrorResponse("Internal database fail", nil),
+			)
+		}
+		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse(
+			"Validation error", err.Error(),
+		))
+	}
+	output := dto.MapToUserDto(updatedUser)
+	return c.Status(fiber.StatusAccepted).JSON(createSuccessResponse(
+		"Student has been updated", output,
+	))
+}
+
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	if users, err := h.userService.GetAllUsers(ctx); err != nil {

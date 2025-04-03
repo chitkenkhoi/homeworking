@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"lqkhoi-go-http-api/internal/models"
+	"lqkhoi-go-http-api/internal/query"
 	"lqkhoi-go-http-api/pkg/structs"
 	"lqkhoi-go-http-api/pkg/utils"
 
@@ -18,8 +18,8 @@ type UserRepository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	FindByID(ctx context.Context, id int) (*models.User, error)
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
-	List(ctx context.Context) ([]models.User, error)
-	Update(ctx context.Context, user *models.User) error
+	List(ctx context.Context) ([]*models.User, error)
+	Update(ctx context.Context, id int, updateMap map[string]any) error
 	Delete(ctx context.Context, id int) error
 	FindValidTeamMembersForAssignment(ctx context.Context, userIDs []int) ([]int, error)
 	AssignUsersToProject(ctx context.Context, projectID int, userIDs []int) error
@@ -27,53 +27,133 @@ type UserRepository interface {
 
 type userRepository struct {
 	db *gorm.DB
+	q  *query.Query
 }
 
 func NewUserRepository(db *gorm.DB) UserRepository {
-	return &userRepository{db: db}
+	return &userRepository{
+		db: db,            // Store the original db
+		q:  query.Use(db), // <--- Initialize the query object here
+	}
 }
 
 func (r *userRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
-	if err := r.db.Create(user).Error; err != nil {
-		slog.Error("Can not create user", "error", err)
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserRepository",
+		"method", "Create",
+	)
+	logger.Debug("Starting create user process", "email", user.Email, "role", user.Role)
+
+	err := r.q.User.WithContext(ctx).Create(user)
+	if err != nil {
+		logger.Error("Failed to create user", "error", err)
 		return nil, structs.ErrDataViolateConstraint
 	}
+
+	logger.Info("Successfully created user", "user_id", user.ID)
 	return user, nil
 }
 
 func (r *userRepository) FindByID(ctx context.Context, id int) (*models.User, error) {
-	var user models.User
-	err := r.db.First(&user, id).Error
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserRepository",
+		"method", "FindByID",
+		"user_id", id,
+	)
+	logger.Debug("Starting find user by ID process")
+
+	u := r.q.User
+	// Use generated Where and First
+	user, err := u.WithContext(ctx).Where(u.ID.Eq(id)).First()
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Warn("User not found")
 			return nil, structs.ErrUserNotExist
 		}
-		slog.Error("Internal database failed", "err", err)
-		return nil, err
+		logger.Error("Failed to find user by ID due to database error", "error", err)
+		return nil, fmt.Errorf("database error finding user %d: %w", id, err)
 	}
-	return &user, nil
+
+	logger.Info("Successfully found user by ID")
+	return user, nil
 }
 
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
-	var user models.User
-	err := r.db.Where("email = ?", email).First(&user).Error
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserRepository",
+		"method", "FindByEmail",
+		"email", email,
+	)
+	logger.Debug("Starting find user by email process")
+
+	u := r.q.User
+	user, err := u.WithContext(ctx).Where(u.Email.Eq(email)).First()
+
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Info("User with email not found")
+			return nil, structs.ErrUserNotExist
+		}
+		logger.Error("Failed to find user by email due to database error", "error", err)
+		return nil, fmt.Errorf("database error finding user by email %s: %w", email, err)
 	}
-	return &user, nil
+
+	logger.Info("Successfully found user by email", "user_id", user.ID)
+	return user, nil
 }
 
-func (r *userRepository) List(ctx context.Context) ([]models.User, error) {
-	var users []models.User
-	result := r.db.Find(&users)
-	if result.Error != nil {
-		return nil, result.Error
+func (r *userRepository) List(ctx context.Context) ([]*models.User, error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserRepository",
+		"method", "List",
+	)
+	logger.Debug("Starting list users process")
+
+	users, err := r.q.User.WithContext(ctx).Find()
+	if err != nil {
+		logger.Error("Failed to list users due to database error", "error", err)
+		return nil, fmt.Errorf("database error listing users: %w", err)
 	}
+
+	logger.Info("Successfully listed users", "count", len(users))
+	logger.Debug("Listed users details", "users", users)
 	return users, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, user *models.User) error {
-	return r.db.Save(user).Error
+func (r *userRepository) Update(ctx context.Context, id int, updateMap map[string]any) error {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserRepository",
+		"method", "Update",
+		"user_id", id,
+	)
+	logger.Debug("Starting update user process", "update_data_keys", utils.MapKeys(updateMap)) // Log only keys
+
+	if len(updateMap) == 0 {
+		logger.Info("Update map is empty after validation, skipping database call.")
+		return nil
+	}
+
+	u := r.q.User
+	resultInfo, err := u.WithContext(ctx).Where(u.ID.Eq(id)).Updates(updateMap)
+
+	if err != nil {
+		logger.Error("Failed to update user", "error", err)
+		return fmt.Errorf("failed to update user %d: %w", id, err)
+	}
+
+	if resultInfo.RowsAffected == 0 {
+		logger.Warn("Update executed but no user found with the given ID or data was the same")
+		return structs.ErrUserNotExist
+	}
+
+	logger.Info("Successfully updated user", "rows_affected", resultInfo.RowsAffected)
+	return nil
 }
 
 func (r *userRepository) Delete(ctx context.Context, id int) error {
@@ -83,38 +163,45 @@ func (r *userRepository) Delete(ctx context.Context, id int) error {
 		"method", "Delete",
 		"user_id", id,
 	)
-
 	logger.Debug("Starting delete user process")
 
-	tx := r.db.Delete(&models.User{}, id)
-	err := tx.Error
+	u := r.q.User
+	resultInfo, err := u.WithContext(ctx).Where(u.ID.Eq(id)).Delete()
+
 	if err != nil {
-		logger.Error("Internal database fail", "error", err)
+		logger.Error("Failed to delete user due to database error", "error", err)
 		return structs.ErrDatabaseFail
 	}
 
-	if tx.RowsAffected == 0 {
-		logger.Error("User with this id does not exist")
+	if resultInfo.RowsAffected == 0 {
+		logger.Warn("Delete executed but no user found with the given ID")
 		return structs.ErrUserNotExist
 	}
 
-	logger.Info("User is deleted")
-
+	logger.Info("Successfully deleted user", "rows_affected", resultInfo.RowsAffected)
 	return nil
 }
 
 func (r *userRepository) FindValidTeamMembersForAssignment(ctx context.Context, userIDs []int) ([]int, error) {
-	logger := slog.With("method", "FindValidTeamMembersForAssignment", "userIDs", userIDs)
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserRepository",
+		"method", "FindValidTeamMembersForAssignment",
+		"userIDs", userIDs,
+	)
 	logger.Debug("Finding valid team members for assignment")
 
-	var users []models.User
+	u := r.q.User
 
-	if err := r.db.WithContext(ctx).Where("id IN ?", userIDs).Find(&users).Error; err != nil {
-		logger.Error("Database query failed", "error", err)
+	users, err := u.WithContext(ctx).Where(u.ID.In(userIDs...)).Find()
+	if err != nil {
+		logger.Error("Database query failed while fetching users", "error", err)
 		return nil, fmt.Errorf("failed to query users: %w", err)
 	}
 
 	logger.Debug("Query successful", "found_users_count", len(users))
+
+	invalidUserMessages := make([]string, 0, len(userIDs))
 
 	if len(users) != len(userIDs) {
 		foundIDs := make(map[int]struct{}, len(users))
@@ -125,29 +212,26 @@ func (r *userRepository) FindValidTeamMembersForAssignment(ctx context.Context, 
 		for _, reqID := range userIDs {
 			if _, ok := foundIDs[reqID]; !ok {
 				missing = append(missing, reqID)
+				invalidUserMessages = append(invalidUserMessages, fmt.Sprintf("user %d not found", reqID))
 			}
 		}
-
 		logger.Error("Some requested users not found", "missing_ids", missing)
-		return nil, fmt.Errorf("users not found: %v", missing)
 	}
 
-	var invalidUserMessages []string
 	var validUserIDs []int
 	for _, user := range users {
 		userLogger := logger.With("user_id", user.ID)
 		userLogger.Debug("Validating user eligibility")
 		if user.Role != models.TeamMember {
-			userLogger.Error("Invalid role",
-				"current_role", user.Role,
-				"required_role", models.TeamMember)
-			invalidUserMessages = append(invalidUserMessages, fmt.Sprintf("user %d has incorrect role '%s'", user.ID, user.Role))
+			msg := fmt.Sprintf("user %d has incorrect role '%s' (required: '%s')", user.ID, user.Role, models.TeamMember)
+			userLogger.Warn("Invalid role for assignment", "current_role", user.Role)
+			invalidUserMessages = append(invalidUserMessages, msg)
 			continue
 		}
 		if user.CurrentProjectID != nil {
-			userLogger.Error("User already assigned to project",
-				"project_id", *user.CurrentProjectID)
-			invalidUserMessages = append(invalidUserMessages, fmt.Sprintf("user %d is already assigned to project %d", user.ID, *user.CurrentProjectID))
+			msg := fmt.Sprintf("user %d is already assigned to project %d", user.ID, *user.CurrentProjectID)
+			userLogger.Warn("User already assigned to a project", "project_id", *user.CurrentProjectID)
+			invalidUserMessages = append(invalidUserMessages, msg)
 			continue
 		}
 		userLogger.Debug("User is eligible for assignment")
@@ -155,21 +239,24 @@ func (r *userRepository) FindValidTeamMembersForAssignment(ctx context.Context, 
 	}
 
 	if len(invalidUserMessages) > 0 {
-		logger.Error("Some users failed validation",
-			"valid_count", len(validUserIDs),
-			"invalid_count", len(invalidUserMessages))
 		joinedMessages := strings.Join(invalidUserMessages, "; ")
+		logger.Warn("Some users failed validation for assignment", "fail_count", len(invalidUserMessages), "errors", joinedMessages)
 		return validUserIDs, fmt.Errorf("validation failed for some users: %s", joinedMessages)
 	}
 
-	logger.Debug("All users validated successfully", "valid_count", len(validUserIDs))
+	logger.Info("All requested users validated successfully for assignment", "valid_count", len(validUserIDs))
 	return validUserIDs, nil
 }
 
-func (r *userRepository) AssignUsersToProject(ctx context.Context, projectID int, userIDs []int) error {
-	logger := slog.With("method", "AssignUsersToProject", "project_id", projectID, "user_ids", userIDs)
-
-	logger.Debug("Starting user assignment", "user_count", len(userIDs))
+func (r *userRepository) AssignUsersToProject(ctx context.Context, projectID int, userIDs []int) (err error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserRepository",
+		"method", "AssignUsersToProject",
+		"project_id", projectID,
+		"user_ids", userIDs,
+	)
+	logger.Debug("Starting user assignment to project in transaction", "user_count", len(userIDs))
 
 	tx := r.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
@@ -177,35 +264,51 @@ func (r *userRepository) AssignUsersToProject(ctx context.Context, projectID int
 		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
 	}
 
-	logger.Debug("Beginning database transaction")
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("Panic recovered during transaction, rolling back", "panic_value", r)
+			tx.Rollback()
+			panic(r)
+		} else if err != nil {
+			logger.Warn("Rolling back transaction due to error", "error", err)
+			if rbErr := tx.Rollback().Error; rbErr != nil {
+				logger.Error("Failed to rollback transaction after error", "rollback_error", rbErr, "original_error", err)
+			}
+		} else {
+			logger.Debug("Transaction committed successfully or skipped (no users).")
+		}
+	}()
 
-	result := tx.Model(&models.User{}).Where("id IN ?", userIDs).Updates(map[string]any{
-		"current_project_id": projectID,
-	})
+	qTx := query.Use(tx)
+	u := qTx.User
 
-	if result.Error != nil {
-		logger.Error("Failed to update users' project assignment", "error", result.Error)
-		logger.Debug("Rolling back transaction due to update error")
-		tx.Rollback()
-		return fmt.Errorf("failed to update users' project assignment: %w", result.Error)
+	updateData := map[string]interface{}{
+		u.CurrentProjectID.ColumnName().String(): projectID,
 	}
 
-	if result.RowsAffected != int64(len(userIDs)) {
-		logger.Error("Unexpected number of users updated",
-			"expected", len(userIDs),
-			"actual", result.RowsAffected)
-		logger.Debug("Rolling back transaction due to row count mismatch")
-		tx.Rollback()
-		return fmt.Errorf("unexpected number of users updated: expected %d, got %d", len(userIDs), result.RowsAffected)
+	resultInfo, updateErr := u.WithContext(ctx).Where(u.ID.In(userIDs...)).Updates(updateData)
+
+	if updateErr != nil {
+		logger.Error("Failed to update users' project assignment within transaction", "error", updateErr)
+		err = fmt.Errorf("failed to update users' project assignment: %w", updateErr)
+		return err
 	}
 
-	logger.Debug("Attempting to commit transaction")
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("Failed to commit transaction", "error", err)
-		logger.Debug("Rolling back transaction due to commit error")
-		tx.Rollback()
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	if resultInfo.RowsAffected != int64(len(userIDs)) {
+		errMsg := fmt.Sprintf("unexpected number of users updated: expected %d, got %d", len(userIDs), resultInfo.RowsAffected)
+		logger.Error("User assignment row count mismatch", "expected", len(userIDs), "actual", resultInfo.RowsAffected)
+		err = errors.New(errMsg)
+		return err
 	}
 
+	logger.Debug("Users updated successfully within transaction, attempting commit", "rows_affected", resultInfo.RowsAffected)
+
+	if commitErr := tx.Commit().Error; commitErr != nil {
+		logger.Error("Failed to commit transaction", "error", commitErr)
+		err = fmt.Errorf("failed to commit transaction: %w", commitErr)
+		return err
+	}
+
+	logger.Info("Successfully assigned users to project and committed transaction")
 	return nil
 }

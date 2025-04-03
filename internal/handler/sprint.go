@@ -190,6 +190,50 @@ func (h *SprintHandler) ListSprints(c *fiber.Ctx) error {
 		createSliceSuccessResponseGeneric("success", outputs))
 }
 
+func (h *SprintHandler) UpdateSprint(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	baseLogger := utils.LoggerFromContext(ctx)
+
+	logger := baseLogger.With(
+		"component", "SprintHandler",
+		"handler", "UpdateSprint",
+	)
+
+	sprintID, err := verifyIdParamInt(c, logger, "sprintId")
+	if err != nil {
+		logger.Error("Invalid sprint id")
+		return err
+	}
+
+	input := &dto.UpdateSprintRequest{}
+	if err = c.BodyParser(input); err != nil {
+		logger.Error("Cannot parse JSON", "error", err)
+		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Cannot parse JSON", nil))
+	}
+
+	errs := utils.ValidateStruct(*input)
+	if errs != nil {
+		logger.Error("Validation failed", "errors", errs)
+		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Validation failed", nil))
+	}
+
+	logger.Debug("Validation finish successfully for input", "input", *input)
+
+	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
+
+	updatedSprint, err := h.sprintService.UpdateSprint(ctx,userClaims.UserID,sprintID,input)
+	if err != nil {
+		if errors.Is(err, structs.ErrDatabaseFail) {
+			return c.Status(fiber.StatusInternalServerError).JSON(createErrorResponse("Internal database fail", nil))
+		}
+		return c.Status(fiber.StatusBadRequest).JSON(createErrorResponse("Validation error", err.Error()))
+	}
+	// //optimize memory here
+	//input = nil
+	output := dto.MapToSprintResponse(updatedSprint)
+	return c.Status(fiber.StatusAccepted).JSON(createSuccessResponse("Sprint has been updated", output))
+}
+
 func (h *SprintHandler) DeleteSprint(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	baseLogger := utils.LoggerFromContext(ctx)

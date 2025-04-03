@@ -57,7 +57,8 @@ func ValidateStructForConfig(payload any) error {
 		for _, err := range validationErrors {
 			slog.Error("Config invalid", "error", err)
 		}
+		return err
 	}
 	slog.Info("Config are valid")
-	return err
+	return nil
 }

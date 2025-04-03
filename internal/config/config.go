@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 
 	"lqkhoi-go-http-api/pkg/utils"
@@ -49,6 +50,7 @@ type Config struct {
 }
 
 func LoadConfig(configPath string) (cfg Config, err error) {
+	slog.SetLogLoggerLevel(slog.LevelDebug)
 	if configPath != "" {
 		viper.AddConfigPath(configPath)
 		viper.SetConfigName("config")
@@ -56,15 +58,15 @@ func LoadConfig(configPath string) (cfg Config, err error) {
 
 		if err := viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				log.Println("Config file not found, using defaults and environment variables.")
+				slog.Error("Config file not found, using defaults and environment variables.", "error", err)
 			} else {
-				log.Printf("Error reading config file: %v\n", err)
+				slog.Error("Error reading config file", "error", err)
 			}
 		} else {
-			log.Println("Using config file:", viper.ConfigFileUsed())
+			slog.Error("Using config file", "file", viper.ConfigFileUsed())
 		}
 	} else {
-		log.Println("No config file path specified, using defaults and environment variables.")
+		slog.Info("No config file path specified, using defaults and environment variables.")
 	}
 
 	viper.AutomaticEnv()
@@ -72,8 +74,13 @@ func LoadConfig(configPath string) (cfg Config, err error) {
 
 	err = viper.Unmarshal(&cfg)
 	if err != nil {
+		slog.Error("Unable to decode config into struct", "error", err)
 		return cfg, fmt.Errorf("unable to decode config into struct: %w", err)
 	}
+
+	slog.Debug("Loaded configuration", "config", cfg)
+
+	slog.Info("Validating configuration")
 
 	err = utils.ValidateStructForConfig(cfg)
 

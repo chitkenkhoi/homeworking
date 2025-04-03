@@ -51,16 +51,20 @@ func (app *App) Setup() error {
 		return err
 	}
 	userRepository := repository.NewUserRepository(db)
-	projectRepository := repository.NewProjectRepository(db,cfg.DateTime)
+	projectRepository := repository.NewProjectRepository(db, cfg.DateTime)
+	sprintRepository := repository.NewSprintRepository(db, cfg.DateTime)
 
 	userService := service.NewUserService(userRepository)
-	projectService := service.NewProjectService(projectRepository,userRepository)
+	projectService := service.NewProjectService(projectRepository, userRepository)
+	sprintService := service.NewSprintService(projectRepository, sprintRepository, projectService, cfg.DateTime)
 
 	userHandler := handler.NewUserHandler(userService)
-	projectHandler := handler.NewProjectHandler(projectService,cfg.DateTime)
+	projectHandler := handler.NewProjectHandler(projectService, cfg.DateTime)
+	sprintHandler := handler.NewSprintHandler(sprintService, cfg.DateTime)
 
 	routes.SetupUserRoutes(app.server, userHandler)
-	routes.SetupProjectRoutes(app.server,projectHandler)
+	routes.SetupProjectRoutes(app.server, projectHandler)
+	routes.SetupSprintRoutes(app.server, sprintHandler)
 
 	return nil
 }

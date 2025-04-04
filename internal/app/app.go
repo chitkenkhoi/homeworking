@@ -15,8 +15,6 @@ import (
 	"lqkhoi-go-http-api/internal/routes"
 	"lqkhoi-go-http-api/internal/service"
 
-	// "lqkhoi-go-http-api/internal/repository"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -38,28 +36,30 @@ func New() *App {
 
 func (app *App) Setup() error {
 	opts := &slog.HandlerOptions{
-		Level: slog.LevelDebug, // Logs: INFO, WARN, ERROR (but not DEBUG)
+		Level: slog.LevelDebug,
 	}
 
-	// Create logger with the level restriction
 	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
 
 	cfg, err := config.LoadConfig("./internal/config")
 	if err != nil {
-		logger.Error("Failed to load configuration","erorr",err.Error())
+		logger.Error("Failed to load configuration", "erorr", err.Error())
 	}
 	app.config = &cfg
 
 	db, err := infrastructure.NewDBConnection(app.config.Database)
 	if err != nil {
-		logger.Error("Failed to connect to database","error",err)
+		logger.Error("Failed to connect to database", "error", err)
 		return err
 	}
 
 	if err := migration.AutoMigrate(db); err != nil {
-		logger.Error("Failed to migrate database","error",err)
+		logger.Error("Failed to migrate database", "error", err)
 		return err
 	}
+
+	prefixApp := app.server.Group("/api/v1")
+
 	userRepository := repository.NewUserRepository(db)
 	projectRepository := repository.NewProjectRepository(db, cfg.DateTime)
 	sprintRepository := repository.NewSprintRepository(db, cfg.DateTime)
@@ -75,13 +75,11 @@ func (app *App) Setup() error {
 	sprintHandler := handler.NewSprintHandler(sprintService, cfg.DateTime)
 	taskHandler := handler.NewTaskHandler(taskService, cfg.DateTime)
 
-
-	
 	lm := middlewares.NewLoggingMiddleware(logger)
-	routes.SetupUserRoutes(app.server, userHandler, lm)
-	routes.SetupProjectRoutes(app.server, projectHandler, lm)
-	routes.SetupSprintRoutes(app.server, sprintHandler, lm)
-	routes.SetupTaskRoutes(app.server, taskHandler, lm)
+	routes.SetupUserRoutes(prefixApp, userHandler, lm)
+	routes.SetupProjectRoutes(prefixApp, projectHandler, lm)
+	routes.SetupSprintRoutes(prefixApp, sprintHandler, lm)
+	routes.SetupTaskRoutes(prefixApp, taskHandler, lm)
 
 	return nil
 }

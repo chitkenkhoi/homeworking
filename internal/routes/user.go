@@ -12,8 +12,8 @@ func sampleHanlder(c *fiber.Ctx) error {
 	return nil
 }
 
-func SetupUserRoutes(app *fiber.App, h *handler.UserHandler, lm fiber.Handler) {
-	log := app.Group("/")
+func SetupUserRoutes(prefixApp fiber.Router, h *handler.UserHandler, lm fiber.Handler) {
+	log := prefixApp.Group("/")
 	log.Use(lm)
 	
 	log.Post("/users", h.CreateUserHandler)

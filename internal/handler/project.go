@@ -30,8 +30,18 @@ func NewProjectHandler(projectService service.ProjectService, cfg config.DateTim
 }
 
 func (h *ProjectHandler) CreateProjectHandler(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	baseLogger := utils.LoggerFromContext(ctx)
+
+	logger := baseLogger.With(
+		"component", "ProjectHandler",
+		"handler", "CreateProjectHandler",
+	)
+
+	logger.Debug("Parsing input...")
 	input := &dto.CreateProjectRequest{}
 	if err := c.BodyParser(input); err != nil {
+		logger.Error("Can not parsing input", "error", err.Error())
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("Cannot parse JSON", nil))
 	}
@@ -42,19 +52,18 @@ func (h *ProjectHandler) CreateProjectHandler(c *fiber.Ctx) error {
 			createErrorResponse("Validation failed", errs))
 	}
 
-	log.Printf("Validation successful for input: %+v\n", *input)
+	logger.Debug("Validation successful", "input", *input)
 	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
 	project := input.MapToProject(userClaims.UserID)
 	// //optimize memory here
 	//input = nil
-	ctx := c.UserContext()
 
 	if project, err := h.projectService.CreateProject(ctx, project); err != nil {
-		log.Printf("Failed to create project: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			createErrorResponse("Failed to create project", err.Error()))
+			createErrorResponse("Failed to create project", nil))
 	} else {
 		output := dto.MapToProjectDto(project)
+		logger.Debug("Response is prepared", "response", output)
 		return c.Status(fiber.StatusCreated).JSON(
 			createSuccessResponse("project is created", output))
 	}

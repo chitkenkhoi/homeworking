@@ -53,15 +53,23 @@ func (s *userService) CreateUser(ctx context.Context, user *models.User) (*model
 }
 
 func (s *userService) FindByID(ctx context.Context, id int) (*models.User, error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserService",
+		"method", "FindByID",
+		"userID", id,
+	)
+	logger.Debug("Finding and validating team members for assignment")
 	user, err := s.userRepository.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, structs.ErrUserNotExist) {
-			slog.Error("User does not exist", "id", id)
+			logger.Warn("User does not exist")
 			return nil, err
 		}
+		logger.Error("Failed to load user", "error", err)
 		return nil, structs.ErrDatabaseFail
 	}
-	slog.Info("Find user with id", "id", id, "data", user)
+	logger.Debug("Find user", "user", user)
 	return user, nil
 }
 

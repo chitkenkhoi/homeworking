@@ -38,7 +38,7 @@ func New() *App {
 
 func (app *App) Setup() error {
 	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo, // Logs: INFO, WARN, ERROR (but not DEBUG)
+		Level: slog.LevelDebug, // Logs: INFO, WARN, ERROR (but not DEBUG)
 	}
 
 	// Create logger with the level restriction

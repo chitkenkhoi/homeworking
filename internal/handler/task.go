@@ -220,15 +220,22 @@ func (h *TaskHandler) AssignTaskToUser(c *fiber.Ctx) error {
 		return err
 	}
 	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
-	if err := h.taskService.AssignTaskToUser(ctx, userClaims.UserID, taskID, userID); err != nil {
+	if err := h.taskService.AssignTaskToUser(ctx, userID, userClaims.UserID, taskID); err != nil {
 		if errors.Is(err, structs.ErrTaskNotExist) {
-			return c.Status(fiber.StatusNotFound).JSON(createErrorResponse("task not found", err.Error()))
+			return c.Status(fiber.StatusNotFound).JSON(
+				createErrorResponse("task not found", err.Error()))
 		} else if errors.Is(err, structs.ErrUserNotExist) {
-			return c.Status(fiber.StatusNotFound).JSON(createErrorResponse("user not found", err.Error()))
+			return c.Status(fiber.StatusNotFound).JSON(
+				createErrorResponse("user not found", err.Error()))
 		} else if errors.Is(err, structs.ErrUserNotManageProject) {
-			return c.Status(fiber.StatusForbidden).JSON(createErrorResponse("forbiden", err.Error()))
+			return c.Status(fiber.StatusForbidden).JSON(
+				createErrorResponse("forbiden", err.Error()))
+		} else if errors.Is(err, structs.ErrUserNotPartProject) {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				createErrorResponse("user is not part of the project", err.Error()))
 		} else {
-			return c.Status(fiber.StatusInternalServerError).JSON(createErrorResponse("internal server error", nil))
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createErrorResponse("internal server error", nil))
 		}
 	}
 	logger.Info("Assign task to user successfully", "task_id", taskID, "user_id", userID)

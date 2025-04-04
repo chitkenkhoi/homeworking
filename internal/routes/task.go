@@ -11,7 +11,7 @@ import (
 func SetupTaskRoutes(app *fiber.App, h *handler.TaskHandler, lm fiber.Handler) {
 	log := app.Group("/")
 	log.Use(lm)
-	
+
 	authenticated := log.Group("/")
 	authenticated.Use(middlewares.AuthMiddleware)
 	authenticated.Get("/tasks/:taskId", h.GetTask)
@@ -27,5 +27,5 @@ func SetupTaskRoutes(app *fiber.App, h *handler.TaskHandler, lm fiber.Handler) {
 	ProjectManagerOnly.Get("/tasks", h.FindTasks)
 	ProjectManagerOnly.Put("/tasks/:taskId", h.UpdateTask)
 	ProjectManagerOnly.Delete("/tasks/:taskId", h.DeleteTask)
-	ProjectManagerOnly.Post("/tasks/:taskId/assign", h.AssignTaskToUser)
+	ProjectManagerOnly.Post("/tasks/:taskId/user/:userId", h.AssignTaskToUser)
 }

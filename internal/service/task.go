@@ -36,6 +36,7 @@ func NewTaskService(taskRepository repository.TaskRepository, projectService Pro
 		taskRepository: taskRepository,
 		projectService: projectService,
 		sprintService:  sprintService,
+		userService:    userService,
 	}
 }
 
@@ -286,7 +287,6 @@ func (s *taskService) FindTasksByUserID(ctx context.Context, userID int) ([]*mod
 		"method", "FindTasksByUserID",
 		"user_id", userID,
 	)
-	
 
 	logger.Info("Starting task retreival process")
 	tasks, err := s.taskRepository.FindTaskByUserID(ctx, userID)

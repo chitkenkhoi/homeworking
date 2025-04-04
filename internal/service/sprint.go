@@ -17,28 +17,25 @@ import (
 type SprintService interface {
 	CreateSprint(ctx context.Context, userID, projectID int, sprint *models.Sprint) (*models.Sprint, error)
 	FindByID(ctx context.Context, userID, sprintID int) (*models.Sprint, error)
-	ListSprints(ctx context.Context, filter dto.SprintFilter) ([]*models.Sprint, error)
+	FindSprints(ctx context.Context, filter *dto.SprintFilter) ([]*models.Sprint, error)
 	GetAndVerifyProjectManagerForSprint(ctx context.Context, baseLogger *slog.Logger, userID, sprintID int) (*models.Sprint, error)
 	UpdateSprint(ctx context.Context, userID, sprintID int, data *dto.UpdateSprintRequest) (*models.Sprint, error)
 	DeleteSprint(ctx context.Context, userID, sprintID int) error
 }
 
 type sprintService struct {
-	projectRepository repository.ProjectRepository
-	sprintRepository  repository.SprintRepository
-	projectService    ProjectService
-	cfg               config.DateTimeConfig
+	sprintRepository repository.SprintRepository
+	projectService   ProjectService
+	cfg              config.DateTimeConfig
 }
 
-func NewSprintService(projectRepository repository.ProjectRepository,
-	sprintRepository repository.SprintRepository,
+func NewSprintService(sprintRepository repository.SprintRepository,
 	projectService ProjectService,
 	cfg config.DateTimeConfig) SprintService {
 	return &sprintService{
-		projectRepository: projectRepository,
-		sprintRepository:  sprintRepository,
-		projectService:    projectService,
-		cfg:               cfg,
+		sprintRepository: sprintRepository,
+		projectService:   projectService,
+		cfg:              cfg,
 	}
 }
 
@@ -121,17 +118,17 @@ func (s *sprintService) CreateSprint(ctx context.Context, userID, projectID int,
 	return sprint, nil
 }
 
-func (s *sprintService) ListSprints(ctx context.Context, filter dto.SprintFilter) ([]*models.Sprint, error) {
+func (s *sprintService) FindSprints(ctx context.Context, filter *dto.SprintFilter) ([]*models.Sprint, error) {
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "SprintService",
-		"method", "ListSprints",
+		"method", "FindSprints",
 	)
 
 	sprints, err := s.sprintRepository.Find(ctx, filter)
 	if err != nil {
-		logger.Error("Failed to list projects", "error", err)
-		return nil, fmt.Errorf("failed to list projects: %w", err)
+		logger.Error("Failed to list sprints", "error", err)
+		return nil, fmt.Errorf("failed to list sprints: %w", err)
 	}
 	return sprints, nil
 }
@@ -220,14 +217,14 @@ func (s *sprintService) UpdateSprint(ctx context.Context, userID, sprintID int, 
 		return sprint, nil
 	}
 
-	logger.Debug("Attempting project update operation", "input", updateMap)
+	logger.Debug("Attempting sprint update operation", "input", updateMap)
 
 	if err := s.sprintRepository.Update(ctx, sprintID, updateMap); err != nil {
 		logger.Error("Failed to update sprint in repository", "error", err)
-		return nil, structs.ErrDatabaseFail
+		return nil, fmt.Errorf("repository failed to update sprint %d: %w", sprint.ID, structs.ErrDatabaseFail)
 	}
 
-	logger.Info("Succesfully updated")
+	logger.Info("Succesfully updated sprint")
 
 	updatedSprint, _ := s.sprintRepository.FindByID(ctx, sprintID)
 	return updatedSprint, nil

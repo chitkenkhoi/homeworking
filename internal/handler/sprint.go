@@ -109,15 +109,15 @@ func (h *SprintHandler) GetSprint(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusAccepted).JSON(createSuccessResponse("successfully found sprint", output))
 }
 
-func (h *SprintHandler) ListSprints(c *fiber.Ctx) error {
+func (h *SprintHandler) FindSprints(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "SprintHandler",
-		"handler", "ListSprints",
+		"handler", "FindSprints",
 	)
 
-	filter := dto.SprintFilter{}
+	filter := &dto.SprintFilter{}
 	var err error
 	var parseErrors []string
 	if idStr := c.Query("id"); idStr != "" {
@@ -174,9 +174,9 @@ func (h *SprintHandler) ListSprints(c *fiber.Ctx) error {
 			createErrorResponse("invalid format input", parseErrors))
 	}
 
-	sprints, err := h.sprintService.ListSprints(ctx, filter)
+	sprints, err := h.sprintService.FindSprints(ctx, filter)
 	if err != nil {
-		logger.Error("Service error listing sprints", "error", err.Error())
+		logger.Error("Service error finding sprints", "error", err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			createErrorResponse("Failed to retrieve sprints", nil))
 	}
@@ -221,7 +221,7 @@ func (h *SprintHandler) UpdateSprint(c *fiber.Ctx) error {
 
 	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
 
-	updatedSprint, err := h.sprintService.UpdateSprint(ctx,userClaims.UserID,sprintID,input)
+	updatedSprint, err := h.sprintService.UpdateSprint(ctx, userClaims.UserID, sprintID, input)
 	if err != nil {
 		if errors.Is(err, structs.ErrDatabaseFail) {
 			return c.Status(fiber.StatusInternalServerError).JSON(createErrorResponse("Internal database fail", nil))

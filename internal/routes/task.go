@@ -1,32 +1,29 @@
 package routes
 
+import (
+	"lqkhoi-go-http-api/internal/handler"
+	"lqkhoi-go-http-api/internal/middlewares"
+	"lqkhoi-go-http-api/internal/models"
 
-// import (
-// 	"lqkhoi-go-http-api/internal/handler"
-// 	"lqkhoi-go-http-api/internal/middlewares"
+	"github.com/gofiber/fiber/v2"
+)
 
-// 	"github.com/gofiber/fiber/v2"
-// )
+func SetupTaskRoutes(app *fiber.App, h *handler.TaskHandler) {
 
-// func SetupTaskRoutes(app *fiber.App) {
-// 	app.Post("/users", sampleHanlder)
-// 	app.Post("/login", sampleHanlder)
+	authenticated := app.Group("/")
+	authenticated.Use(middlewares.AuthMiddleware)
+	authenticated.Get("/tasks/:taskId", h.GetTask)
 
-// 	authenticated := app.Group("/")
-// 	authenticated.Use(middlewares.AuthMiddleware())
+	OwnerOrProjectManager := authenticated.Group("/")
+	OwnerOrProjectManager.Get("/users/:userId/tasks", h.FindTasksByUserID)
 
-// 	authenticated.Get("/me", sampleHanlder)
+	ProjectManagerOnly := authenticated.Group("/")
+	ProjectManagerOnly.Use(middlewares.RequireRoleIs(models.ProjectManager))
 
-// 	ownerOrAdmin := authenticated.Group("/users/:userId")
-// 	ownerOrAdmin.Use(middlewares.RequireOwnerOrAdmin())
-
-// 	ownerOrAdmin.Get("/", sampleHanlder)
-// 	ownerOrAdmin.Put("/", sampleHanlder)
-// 	ownerOrAdmin.Delete("/", sampleHanlder)
-
-// 	adminOnly := authenticated.Group("/")
-// 	adminOnly.Use(middlewares.RequireAdmin())
-
-// 	adminOnly.Get("/users", sampleHanlder)
-
-// }
+	ProjectManagerOnly.Get("/projects/:projectId/tasks", h.FindTasksByProjectID)
+	ProjectManagerOnly.Post("/tasks",h.CreateTask)
+	ProjectManagerOnly.Get("/tasks", h.FindTasks)
+	ProjectManagerOnly.Put("/tasks/:taskId", h.UpdateTask)
+	ProjectManagerOnly.Delete("/tasks/:taskId", h.DeleteTask)
+	ProjectManagerOnly.Post("/tasks/:taskId/assign", h.AssignTaskToUser)
+}

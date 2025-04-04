@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"lqkhoi-go-http-api/internal/models"
 	"lqkhoi-go-http-api/internal/query"
@@ -17,11 +16,11 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	FindByID(ctx context.Context, id int) (*models.User, error)
+	FindByIDs(ctx context.Context, userIDs []int) ([]*models.User, error)
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	List(ctx context.Context) ([]*models.User, error)
 	Update(ctx context.Context, id int, updateMap map[string]any) error
 	Delete(ctx context.Context, id int) error
-	FindValidTeamMembersForAssignment(ctx context.Context, userIDs []int) ([]int, error)
 	AssignUsersToProject(ctx context.Context, projectID int, userIDs []int) error
 }
 
@@ -65,7 +64,6 @@ func (r *userRepository) FindByID(ctx context.Context, id int) (*models.User, er
 	logger.Debug("Starting find user by ID process")
 
 	u := r.q.User
-	// Use generated Where and First
 	user, err := u.WithContext(ctx).Where(u.ID.Eq(id)).First()
 
 	if err != nil {
@@ -182,70 +180,30 @@ func (r *userRepository) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *userRepository) FindValidTeamMembersForAssignment(ctx context.Context, userIDs []int) ([]int, error) {
+func (r *userRepository) FindByIDs(ctx context.Context, userIDs []int) ([]*models.User, error) {
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "UserRepository",
-		"method", "FindValidTeamMembersForAssignment",
+		"method", "FindUsersByIDs",
 		"userIDs", userIDs,
 	)
-	logger.Debug("Finding valid team members for assignment")
+	logger.Debug("Fetching users by IDs")
+
+	if len(userIDs) == 0 {
+		logger.Debug("No user IDs provided, returning empty list")
+		return []*models.User{}, nil
+	}
 
 	u := r.q.User
 
 	users, err := u.WithContext(ctx).Where(u.ID.In(userIDs...)).Find()
 	if err != nil {
-		logger.Error("Database query failed while fetching users", "error", err)
-		return nil, fmt.Errorf("failed to query users: %w", err)
+		logger.Error("Database query failed while fetching users by IDs", "error", err)
+		return nil, err
 	}
 
-	logger.Debug("Query successful", "found_users_count", len(users))
-
-	invalidUserMessages := make([]string, 0, len(userIDs))
-
-	if len(users) != len(userIDs) {
-		foundIDs := make(map[int]struct{}, len(users))
-		for _, u := range users {
-			foundIDs[u.ID] = struct{}{}
-		}
-		var missing []int
-		for _, reqID := range userIDs {
-			if _, ok := foundIDs[reqID]; !ok {
-				missing = append(missing, reqID)
-				invalidUserMessages = append(invalidUserMessages, fmt.Sprintf("user %d not found", reqID))
-			}
-		}
-		logger.Error("Some requested users not found", "missing_ids", missing)
-	}
-
-	var validUserIDs []int
-	for _, user := range users {
-		userLogger := logger.With("user_id", user.ID)
-		userLogger.Debug("Validating user eligibility")
-		if user.Role != models.TeamMember {
-			msg := fmt.Sprintf("user %d has incorrect role '%s' (required: '%s')", user.ID, user.Role, models.TeamMember)
-			userLogger.Warn("Invalid role for assignment", "current_role", user.Role)
-			invalidUserMessages = append(invalidUserMessages, msg)
-			continue
-		}
-		if user.CurrentProjectID != nil {
-			msg := fmt.Sprintf("user %d is already assigned to project %d", user.ID, *user.CurrentProjectID)
-			userLogger.Warn("User already assigned to a project", "project_id", *user.CurrentProjectID)
-			invalidUserMessages = append(invalidUserMessages, msg)
-			continue
-		}
-		userLogger.Debug("User is eligible for assignment")
-		validUserIDs = append(validUserIDs, user.ID)
-	}
-
-	if len(invalidUserMessages) > 0 {
-		joinedMessages := strings.Join(invalidUserMessages, "; ")
-		logger.Warn("Some users failed validation for assignment", "fail_count", len(invalidUserMessages), "errors", joinedMessages)
-		return validUserIDs, fmt.Errorf("validation failed for some users: %s", joinedMessages)
-	}
-
-	logger.Info("All requested users validated successfully for assignment", "valid_count", len(validUserIDs))
-	return validUserIDs, nil
+	logger.Debug("User query successful", "found_users_count", len(users))
+	return users, nil
 }
 
 func (r *userRepository) AssignUsersToProject(ctx context.Context, projectID int, userIDs []int) (err error) {

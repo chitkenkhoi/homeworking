@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"lqkhoi-go-http-api/internal/config"
+	"lqkhoi-go-http-api/internal/dto"
 	"lqkhoi-go-http-api/internal/models"
 	"lqkhoi-go-http-api/internal/query"
 	"lqkhoi-go-http-api/pkg/structs"
@@ -16,8 +17,12 @@ import (
 
 type TaskRepository interface {
 	Create(ctx context.Context, task *models.Task) (*models.Task, error)
+	AssignTaskToUser(ctx context.Context, userID, taskID int) error
+	Find(ctx context.Context, filter *dto.TaskFilter) ([]*models.Task, error)
 	FindByID(ctx context.Context, id int) (*models.Task, error)
+	Update(ctx context.Context, id int, updateMap map[string]any) error
 	FindTasksByProjectID(ctx context.Context, projectID int) ([]*models.Task, error)
+	FindTaskByUserID(ctx context.Context, userID int) ([]*models.Task, error)
 	Delete(ctx context.Context, id int) error
 }
 
@@ -92,7 +97,7 @@ func (r *taskRepository) FindTasksByProjectID(ctx context.Context, projectID int
 		"project_id", projectID,
 	)
 	logger.Debug("Starting find tasks by project ID process")
-	t := r.q.Task 
+	t := r.q.Task
 
 	taskQuery := t.WithContext(ctx).
 		Where(t.ProjectID.Eq(projectID)).
@@ -106,6 +111,127 @@ func (r *taskRepository) FindTasksByProjectID(ctx context.Context, projectID int
 
 	logger.Info("Successfully found tasks for project", "count", len(tasks))
 	return tasks, nil
+}
+
+func (r *taskRepository) FindTaskByUserID(ctx context.Context, userID int) ([]*models.Task, error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "TaskRepository",
+		"method", "FindTaskByUserID",
+		"user_id", userID,
+	)
+	logger.Debug("Starting find tasks by user ID process")
+	t := r.q.Task
+	taskQuery := t.WithContext(ctx).
+		Where(t.AssigneeID.Eq(userID)).
+		Preload(t.Assignee)
+	tasks, err := taskQuery.Find()
+	if err != nil {
+		logger.Error("Failed to find tasks by user ID due to database error", "error", err)
+		return nil, fmt.Errorf("database error finding tasks for user %d: %w", userID, structs.ErrDatabaseFail)
+	}
+
+	logger.Info("Successfully found tasks for user", "count", len(tasks))
+	return tasks, nil
+}
+
+func (r *taskRepository) Find(ctx context.Context, filter *dto.TaskFilter) ([]*models.Task, error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "TaskRepository",
+		"method", "Find",
+	)
+	logger.Debug("Starting find tasks process", "filter", filter)
+
+	t := r.q.Task
+	taskQuery := t.WithContext(ctx)
+
+	if filter.ID != nil {
+		logger.Debug("Applying filter: ID", "task_id", *filter.ID)
+		taskQuery = taskQuery.Where(t.ID.Eq(*filter.ID))
+	}
+	if filter.Title != nil && *filter.Title != "" {
+		titlePattern := fmt.Sprintf("%%%s%%", *filter.Title)
+		logger.Debug("Applying filter: Title", "task_title_pattern", titlePattern)
+		taskQuery = taskQuery.Where(t.Title.Like(titlePattern))
+	}
+	if filter.Status != nil {
+		logger.Debug("Applying filter: Status", "task_status", *filter.Status)
+		taskQuery = taskQuery.Where(t.Status.Eq(string(*filter.Status)))
+	}
+	if filter.Priority != nil {
+		logger.Debug("Applying filter: Priority", "task_priority", *filter.Priority)
+		taskQuery = taskQuery.Where(t.Priority.Eq(string(*filter.Priority)))
+	}
+	if filter.DueDateBefore != nil {
+		logger.Debug("Applying filter: DueDateBefore", "due_date", filter.DueDateBefore)
+		taskQuery = taskQuery.Where(t.DueDate.Lte(*filter.DueDateBefore))
+	}
+
+	tasks,err := taskQuery.Find()
+	if err != nil {
+		logger.Error("Error finding tasks", "error", err)
+		return nil, fmt.Errorf("database error retrieving tasks: %w", err)
+	}
+	logger.Info("Successfully found tasks", "count", len(tasks))
+	logger.Debug("Found tasks details", "tasks", tasks)
+	return tasks, nil
+}
+
+func (r *taskRepository) AssignTaskToUser(ctx context.Context, userID, taskID int) error {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "TaskRepository",
+		"method", "AssignTaskToUser",
+		"user_id", userID,
+		"task_id", taskID,
+	)
+	logger.Debug("Starting assign task to user process")
+	s := r.q.Task
+	task, err := s.WithContext(ctx).Where(s.ID.Eq(taskID)).First()
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Warn("Task not found")
+			return structs.ErrTaskNotExist
+		}
+		logger.Error("Failed to find task by ID due to database error", "error", err)
+		return structs.ErrDatabaseFail
+	}
+	task.AssigneeID = &userID
+	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(taskID)).Updates(task)
+	if err != nil {
+		logger.Error("Failed to assign task to user due to database error", "error", err)
+		return structs.ErrDatabaseFail
+	}
+
+	logger.Info("Successfully updated sprint", "rows_affected", resultInfo.RowsAffected)
+	return nil
+}
+
+func (r *taskRepository) Update(ctx context.Context, id int, updateMap map[string]any) error {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "TaskRepository",
+		"method", "Update",
+		"task_id", id,
+	)
+	logger.Debug("Starting update task process", "update_data", updateMap)
+
+	s := r.q.Task
+	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Updates(updateMap)
+
+	if err != nil {
+		logger.Error("Failed to update task", "error", err)
+		return fmt.Errorf("failed to update task %d: %w", id, err)
+	}
+
+	if resultInfo.RowsAffected == 0 {
+		logger.Warn("Update executed but no task found with the given ID or data was the same")
+		return structs.ErrTaskNotExist
+	}
+
+	logger.Info("Successfully updated task", "rows_affected", resultInfo.RowsAffected)
+	return nil
 }
 
 func (r *taskRepository) Delete(ctx context.Context, id int) error {

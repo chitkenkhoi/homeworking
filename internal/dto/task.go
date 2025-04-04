@@ -7,11 +7,11 @@ import (
 )
 
 type CreateTaskRequest struct {
-	Title       string              `json:"tittle" validate:"required,min=2,max=255"`
-	Description string              `json:"description" validate:"omitempty,max=65535"`
-	SprintID    int                 `json:"sprint_id" validate:"required,min=1"`
-	Status      models.TaskStatus   `json:"status" validate:"omitempty,oneof=TO_DO IN_PROGRESS REVIEW DONE BLOCKED"`
-	Priority    models.TaskPriority `json:"priority" validate:"omitempty,oneof=HIGH MEDIUM LOW CRITICAL"`
+	Title       string              `json:"tittle"             validate:"required,min=2,max=255"`
+	Description string              `json:"description"        validate:"omitempty,max=65535"`
+	SprintID    int                 `json:"sprint_id"          validate:"required,min=1"`
+	Status      models.TaskStatus   `json:"status"             validate:"omitempty,oneof=TO_DO IN_PROGRESS REVIEW DONE BLOCKED"`
+	Priority    models.TaskPriority `json:"priority"           validate:"omitempty,oneof=HIGH MEDIUM LOW CRITICAL"`
 	DueDate     *time.Time          `json:"due_date,omitempty" validate:"omitempty"`
 }
 
@@ -83,6 +83,7 @@ type TaskInSliceResponse struct {
 	Title             string              `json:"tittle"`
 	Description       string              `json:"description"`
 	SprintID          int                 `json:"sprint_id"`
+	ProjectID         int                 `json:"project_id"`
 	AssigneeID        *int                `json:"assignee_id,omitempty"`
 	AssigneeFirstName *string             `json:"assignee_first_name,omitempty"`
 	AssigneeLastName  *string             `json:"assignee_last_name,omitempty"`
@@ -107,6 +108,7 @@ func MapToSliceOfTaskResponse(tasks []*models.Task) []TaskInSliceResponse {
 		res[i].Priority = task.Priority
 		res[i].DueDate = task.DueDate
 		res[i].AssigneeID = task.AssigneeID
+		res[i].ProjectID = task.ProjectID
 
 		if task.Assignee != nil {
 			res[i].AssigneeFirstName = &task.Assignee.FirstName
@@ -114,4 +116,20 @@ func MapToSliceOfTaskResponse(tasks []*models.Task) []TaskInSliceResponse {
 		}
 	}
 	return res
+}
+
+type UpdateTaskRequest struct {
+	Title       *string              `json:"title"              validate:"omitempty,min=2,max=255"`
+	Description *string              `json:"description"        validate:"omitempty,max=65535"`
+	Status      *models.TaskStatus   `json:"status"             validate:"omitempty,oneof=TO_DO IN_PROGRESS REVIEW DONE BLOCKED"`
+	Priority    *models.TaskPriority `json:"priority"           validate:"omitempty,oneof=HIGH MEDIUM LOW CRITICAL"`
+	DueDate     *time.Time           `json:"due_date,omitempty" validate:"omitempty"`
+}
+
+type TaskFilter struct {
+	ID            *int
+	Title         *string
+	Status        *models.TaskStatus
+	Priority      *models.TaskPriority
+	DueDateBefore *time.Time
 }

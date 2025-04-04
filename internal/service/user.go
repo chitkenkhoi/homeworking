@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"strings"
 
 	"lqkhoi-go-http-api/internal/dto"
 	"lqkhoi-go-http-api/internal/models"
@@ -19,6 +20,8 @@ import (
 type UserService interface {
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	FindByID(ctx context.Context, id int) (*models.User, error)
+	FindValidTeamMembersForAssignment(ctx context.Context, userIDs []int) ([]int, error)
+	AssignUsersToProject(ctx context.Context, projectID int, userIDs []int) error
 	Login(ctx context.Context, rq dto.LoginRequest) (string, error)
 	GetAllUsers(ctx context.Context) ([]*models.User, error)
 	UpdateUser(ctx context.Context, userID int,
@@ -60,6 +63,103 @@ func (s *userService) FindByID(ctx context.Context, id int) (*models.User, error
 	}
 	slog.Info("Find user with id", "id", id, "data", user)
 	return user, nil
+}
+
+func (s *userService) FindValidTeamMembersForAssignment(ctx context.Context, userIDs []int) ([]int, error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserService",
+		"method", "FindValidTeamMembersForAssignment",
+		"userIDs", userIDs,
+	)
+	logger.Debug("Finding and validating team members for assignment")
+
+	if len(userIDs) == 0 {
+		logger.Debug("No user IDs provided for validation")
+		return []int{}, nil
+	}
+
+	users, err := s.userRepository.FindByIDs(ctx, userIDs)
+	if err != nil {
+		logger.Error("Failed to fetch users from repository", "error", err)
+		return nil, fmt.Errorf("failed to retrieve user data: %w", err)
+	}
+
+	logger.Debug("Successfully fetched users from repository", "found_users_count", len(users))
+
+	foundIDs := make(map[int]struct{}, len(users))
+	for _, u := range users {
+		foundIDs[u.ID] = struct{}{}
+	}
+
+	invalidUserMessages := make([]string, 0, 2*len(userIDs))
+	validUserIDs := make([]int, 0, len(users))
+
+	for _, reqID := range userIDs {
+		if _, ok := foundIDs[reqID]; !ok {
+			msg := fmt.Sprintf("user %d not found", reqID)
+			logger.Warn("Requested user not found", "user_id", reqID)
+			invalidUserMessages = append(invalidUserMessages, msg)
+		}
+	}
+
+	for _, user := range users {
+		userLogger := logger.With("user_id", user.ID)
+		isValid := true
+
+		if user.Role != models.TeamMember {
+			msg := fmt.Sprintf("user %d has incorrect role '%s' (required: '%s')", user.ID, user.Role, models.TeamMember)
+			userLogger.Warn("Invalid role for assignment", "current_role", user.Role, "required_role", models.TeamMember)
+			invalidUserMessages = append(invalidUserMessages, msg)
+			isValid = false
+		}
+
+		if user.CurrentProjectID != nil {
+			msg := fmt.Sprintf("user %d is already assigned to project %d", user.ID, *user.CurrentProjectID)
+			userLogger.Warn("User already assigned to a project", "project_id", *user.CurrentProjectID)
+			invalidUserMessages = append(invalidUserMessages, msg)
+			isValid = false
+		}
+
+		if isValid {
+			userLogger.Debug("User is eligible for assignment")
+			validUserIDs = append(validUserIDs, user.ID)
+		}
+	}
+
+	if len(invalidUserMessages) > 0 {
+		joinedMessages := strings.Join(invalidUserMessages, "; ")
+		logger.Warn("Some users failed validation for assignment", "fail_count", len(invalidUserMessages), "valid_count", len(validUserIDs), "errors", joinedMessages)
+		return validUserIDs, fmt.Errorf("validation failed for some users: %s", joinedMessages)
+	}
+
+	logger.Info("All requested users validated successfully for assignment", "valid_count", len(validUserIDs))
+	return validUserIDs, nil
+}
+
+func (s *userService) AssignUsersToProject(ctx context.Context, projectID int, userIDs []int) error {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserService",
+		"method", "AssignUsersToProject",
+		"project_id", projectID,
+		"userIDs", userIDs,
+	)
+	logger.Debug("Starting user assignment to project")
+
+	if len(userIDs) == 0 {
+		logger.Debug("No user IDs provided for assignment")
+		return nil
+	}
+
+	err := s.userRepository.AssignUsersToProject(ctx, projectID, userIDs)
+	if err != nil {
+		logger.Error("Failed to assign users to project in repository", "error", err)
+		return structs.ErrDatabaseFail
+	}
+
+	logger.Info("Successfully assigned users to project", "valid_count", len(userIDs))
+	return nil
 }
 
 func (s *userService) Login(ctx context.Context, rq dto.LoginRequest) (string, error) {
@@ -145,15 +245,21 @@ func (s *userService) UpdateUser(ctx context.Context, userID int,
 }
 
 func (s *userService) DeleteUser(ctx context.Context, id int) error {
+	logger := utils.LoggerFromContext(ctx).With(
+		"component", "UserService",
+		"handler", "DeleteUser",
+		"user_id", id,
+	)
 	err := s.userRepository.Delete(ctx, id)
 	if err != nil {
 		if errors.Is(err, structs.ErrUserNotExist) {
-			slog.Error("Can not find user with", "id", id)
+			logger.Warn("User not found for deletion", "user_id", id)
 			return err
 		} else {
+			logger.Error("Failed to delete user from repository", "error", err)
 			return structs.ErrDatabaseFail
 		}
 	}
-	slog.Debug("Deleted user with", "id", id)
+	logger.Info("Successfully deleted user", "user_id", id)
 	return nil
 }

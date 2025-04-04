@@ -25,13 +25,13 @@ type ProjectService interface {
 
 type projectService struct {
 	projectRepository repository.ProjectRepository
-	userRepository    repository.UserRepository
+	userService       UserService
 }
 
-func NewProjectService(projectRepository repository.ProjectRepository, userRepository repository.UserRepository) ProjectService {
+func NewProjectService(projectRepository repository.ProjectRepository, userService UserService) ProjectService {
 	return &projectService{
 		projectRepository: projectRepository,
-		userRepository:    userRepository,
+		userService: userService,
 	}
 }
 
@@ -125,7 +125,7 @@ func (s *projectService) AddTeamMembers(ctx context.Context, userID, projectID i
 	}
 
 	logger.Debug("Validating users for assignment")
-	validUserIDs, validationErr := s.userRepository.FindValidTeamMembersForAssignment(ctx, userIDsToAdd)
+	validUserIDs, validationErr := s.userService.FindValidTeamMembersForAssignment(ctx, userIDsToAdd)
 
 	if validationErr != nil {
 		logger.Debug("User validation produced errors",
@@ -146,7 +146,7 @@ func (s *projectService) AddTeamMembers(ctx context.Context, userID, projectID i
 
 	logger.Debug("Assigning users to project", "user_count", len(validUserIDs))
 
-	err = s.userRepository.AssignUsersToProject(ctx, projectID, validUserIDs)
+	err = s.userService.AssignUsersToProject(ctx, projectID, validUserIDs)
 	if err != nil {
 		logger.Error("Failed to assign users to project", "error", err)
 		return 0, structs.ErrDatabaseFail

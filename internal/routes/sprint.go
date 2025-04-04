@@ -16,8 +16,8 @@ func SetupSprintRoutes(app *fiber.App, h *handler.SprintHandler) {
 	projectManagerSprint.Use(middlewares.RequireRoleIs(models.ProjectManager))
 
 	projectManagerSprint.Post("/", h.CreateSprint)
-	projectManagerSprint.Get("/", h.ListSprints)
+	projectManagerSprint.Get("/", h.FindSprints)
 	projectManagerSprint.Get("/:sprintId", h.GetSprint)
-	projectManagerSprint.Put("/:sprintId")
+	projectManagerSprint.Put("/:sprintId", h.UpdateSprint)
 	projectManagerSprint.Delete("/:sprintId", h.DeleteSprint)
 }

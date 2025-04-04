@@ -55,8 +55,8 @@ func (app *App) Setup() error {
 	sprintRepository := repository.NewSprintRepository(db, cfg.DateTime)
 
 	userService := service.NewUserService(userRepository)
-	projectService := service.NewProjectService(projectRepository, userRepository)
-	sprintService := service.NewSprintService(projectRepository, sprintRepository, projectService, cfg.DateTime)
+	projectService := service.NewProjectService(projectRepository, userService)
+	sprintService := service.NewSprintService(sprintRepository, projectService, cfg.DateTime)
 
 	userHandler := handler.NewUserHandler(userService)
 	projectHandler := handler.NewProjectHandler(projectService, cfg.DateTime)

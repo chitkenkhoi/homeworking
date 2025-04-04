@@ -53,3 +53,49 @@ func RequireOwnerOrAdmin() fiber.Handler {
 		return c.Next()
 	}
 }
+
+func RequireOwnerOrProjectManager() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claimsData := c.Locals("user_claims")
+		userClaims, ok := claimsData.(*structs.Claims)
+		if !ok || userClaims == nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Internal Server Error: Invalid claims format",
+			})
+		}
+
+		if userClaims.Role == models.ProjectManager {
+			return c.Next()
+		}
+
+		if strconv.Itoa(userClaims.UserID) != c.Params("userId") {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Forbidden: Owner or project manager access required",
+			})
+		}
+
+		return c.Next()
+	}
+}
+
+func RequireOwnerIfTeamMember() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claimsData := c.Locals("user_claims")
+		userClaims, ok := claimsData.(*structs.Claims)
+		if !ok || userClaims == nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Internal Server Error: Invalid claims format",
+			})
+		}
+
+		if userClaims.Role == models.TeamMember {
+			if strconv.Itoa(userClaims.UserID) != c.Params("userId") {
+				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+					"error": "Forbidden: Owner access required",
+				})
+			}
+		}
+
+		return c.Next()
+	}
+}

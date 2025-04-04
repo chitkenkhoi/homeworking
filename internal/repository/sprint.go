@@ -18,7 +18,7 @@ import (
 type SprintRepository interface {
 	Create(ctx context.Context, sprint *models.Sprint) (*models.Sprint, error)
 	FindByID(ctx context.Context, id int) (*models.Sprint, error)
-	Find(ctx context.Context, filter dto.SprintFilter) ([]*models.Sprint, error)
+	Find(ctx context.Context, filter *dto.SprintFilter) ([]*models.Sprint, error)
 	Update(ctx context.Context, id int, updateMap map[string]any) error
 	Delete(ctx context.Context, id int) error
 }
@@ -86,7 +86,7 @@ func (r *sprintRepository) FindByID(ctx context.Context, id int) (*models.Sprint
 	return sprint, nil
 }
 
-func (r *sprintRepository) Find(ctx context.Context, filter dto.SprintFilter) ([]*models.Sprint, error) {
+func (r *sprintRepository) Find(ctx context.Context, filter *dto.SprintFilter) ([]*models.Sprint, error) {
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "SprintRepository",
@@ -126,7 +126,7 @@ func (r *sprintRepository) Find(ctx context.Context, filter dto.SprintFilter) ([
 	}
 
 	logger.Info("Successfully found sprints", "count", len(sprints))
-	logger.Debug("Found sprints details", "sprints", sprints) // Be mindful logging large lists
+	logger.Debug("Found sprints details", "sprints", sprints)
 
 	return sprints, nil
 }

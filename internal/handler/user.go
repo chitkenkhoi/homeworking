@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 
 	"lqkhoi-go-http-api/internal/dto"
@@ -72,21 +71,30 @@ func (h *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) Login(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	baseLogger := utils.LoggerFromContext(ctx)
+
+	logger := baseLogger.With(
+		"component", "UserHandler",
+		"handler", "Login",
+	)
+
 	input := &dto.LoginRequest{}
 	if err := c.BodyParser(input); err != nil {
+		logger.Error("Can not parse JSON", "error", err.Error())
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("Cannot parse JSON", nil))
 	}
 
+	logger.Debug("Validating user's input", "input", input)
+
 	errs := utils.ValidateStruct(*input)
 	if errs != nil {
+		logger.Error("Validation failed", "error", errs)
 		return c.Status(fiber.StatusBadRequest).JSON(
 			createErrorResponse("Validation failed", errs))
 	}
 
-	log.Printf("Validation successful for input: %+v\n", *input)
-
-	ctx := c.UserContext()
 	if token, err := h.userService.Login(ctx, *input); err != nil {
 		if errors.Is(err, structs.ErrDatabaseFail) || errors.Is(err, structs.ErrInternalServer) {
 			return c.Status(fiber.StatusInternalServerError).JSON(
@@ -109,14 +117,16 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetMe(c *fiber.Ctx) error {
-	claimsData := c.Locals("user_claims")
-	userClaims, ok := claimsData.(*structs.Claims)
-	if !ok || userClaims == nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			createErrorResponse("Internal Server Error: Invalid claims format", nil))
-	}
-
 	ctx := c.UserContext()
+	baseLogger := utils.LoggerFromContext(ctx)
+
+	logger := baseLogger.With(
+		"component", "UserHandler",
+		"handler", "Login",
+	)
+	claimsData := c.Locals("user_claims")
+	userClaims, _ := claimsData.(*structs.Claims)
+
 	user, err := h.userService.FindByID(ctx, userClaims.UserID)
 
 	if err != nil {
@@ -129,19 +139,25 @@ func (h *UserHandler) GetMe(c *fiber.Ctx) error {
 		}
 	} else {
 		output := dto.MapToUserDto(user)
+		logger.Debug("Response is prepared", "response", output)
 		return c.Status(fiber.StatusFound).JSON(createSuccessResponse("Found user", output))
 	}
 }
 
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("userId")
-	if err != nil {
-		slog.Error("invalid user id", "error", err)
-		return c.Status(fiber.StatusBadRequest).JSON(
-			createErrorResponse("invalid user id", nil))
+	ctx := c.UserContext()
+	baseLogger := utils.LoggerFromContext(ctx)
+
+	logger := baseLogger.With(
+		"component", "UserHandler",
+		"handler", "Login",
+	)
+
+	id, err := verifyIdParamInt(c,logger,"userId")
+	if err != nil{
+		return err
 	}
 
-	ctx := c.UserContext()
 	user, err := h.userService.FindByID(ctx, id)
 
 	if err != nil {
@@ -156,6 +172,7 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 
 	} else {
 		output := dto.MapToUserDto(user)
+		logger.Debug("Response is prepared", "response", output)
 		return c.Status(fiber.StatusFound).JSON(
 			createSuccessResponse("found user", output))
 	}
@@ -169,7 +186,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	)
 	id, err := verifyIdParamInt(c, logger, "userId")
 	if err != nil {
-		logger.Error("Invalid project id")
+		logger.Error("Invalid user id")
 		return err
 	}
 

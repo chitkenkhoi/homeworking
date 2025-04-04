@@ -3,10 +3,13 @@ package app
 import (
 	"fmt"
 	"log"
+	"log/slog"
+	"os"
 
 	"lqkhoi-go-http-api/internal/config"
 	"lqkhoi-go-http-api/internal/handler"
 	"lqkhoi-go-http-api/internal/infrastructure"
+	"lqkhoi-go-http-api/internal/middlewares"
 	"lqkhoi-go-http-api/internal/migration"
 	"lqkhoi-go-http-api/internal/repository"
 	"lqkhoi-go-http-api/internal/routes"
@@ -34,20 +37,27 @@ func New() *App {
 }
 
 func (app *App) Setup() error {
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelInfo, // Logs: INFO, WARN, ERROR (but not DEBUG)
+	}
+
+	// Create logger with the level restriction
+	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
+
 	cfg, err := config.LoadConfig("./internal/config")
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		logger.Error("Failed to load configuration","erorr",err.Error())
 	}
 	app.config = &cfg
 
 	db, err := infrastructure.NewDBConnection(app.config.Database)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("Failed to connect to database","error",err)
 		return err
 	}
 
 	if err := migration.AutoMigrate(db); err != nil {
-		log.Fatal(err)
+		logger.Error("Failed to migrate database","error",err)
 		return err
 	}
 	userRepository := repository.NewUserRepository(db)
@@ -65,10 +75,13 @@ func (app *App) Setup() error {
 	sprintHandler := handler.NewSprintHandler(sprintService, cfg.DateTime)
 	taskHandler := handler.NewTaskHandler(taskService, cfg.DateTime)
 
-	routes.SetupUserRoutes(app.server, userHandler)
-	routes.SetupProjectRoutes(app.server, projectHandler)
-	routes.SetupSprintRoutes(app.server, sprintHandler)
-	routes.SetupTaskRoutes(app.server, taskHandler)
+
+	
+	lm := middlewares.NewLoggingMiddleware(logger)
+	routes.SetupUserRoutes(app.server, userHandler, lm)
+	routes.SetupProjectRoutes(app.server, projectHandler, lm)
+	routes.SetupSprintRoutes(app.server, sprintHandler, lm)
+	routes.SetupTaskRoutes(app.server, taskHandler, lm)
 
 	return nil
 }

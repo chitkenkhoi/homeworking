@@ -12,11 +12,14 @@ func sampleHanlder(c *fiber.Ctx) error {
 	return nil
 }
 
-func SetupUserRoutes(app *fiber.App, h *handler.UserHandler) {
-	app.Post("/users", h.CreateUserHandler)
-	app.Post("/login", h.Login)
+func SetupUserRoutes(app *fiber.App, h *handler.UserHandler, lm fiber.Handler) {
+	log := app.Group("/")
+	log.Use(lm)
+	
+	log.Post("/users", h.CreateUserHandler)
+	log.Post("/login", h.Login)
 
-	authenticated := app.Group("/")
+	authenticated := log.Group("/")
 	authenticated.Use(middlewares.AuthMiddleware)
 
 	authenticated.Get("/me", h.GetMe)

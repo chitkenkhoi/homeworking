@@ -8,9 +8,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupTaskRoutes(app *fiber.App, h *handler.TaskHandler) {
-
-	authenticated := app.Group("/")
+func SetupTaskRoutes(app *fiber.App, h *handler.TaskHandler, lm fiber.Handler) {
+	log := app.Group("/")
+	log.Use(lm)
+	
+	authenticated := log.Group("/")
 	authenticated.Use(middlewares.AuthMiddleware)
 	authenticated.Get("/tasks/:taskId", h.GetTask)
 

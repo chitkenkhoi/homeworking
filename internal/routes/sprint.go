@@ -8,8 +8,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupSprintRoutes(app *fiber.App, h *handler.SprintHandler) {
-	authenticated := app.Group("/")
+func SetupSprintRoutes(app *fiber.App, h *handler.SprintHandler, lm fiber.Handler) {
+	log := app.Group("/")
+	log.Use(lm)
+
+	authenticated := log.Group("/")
 	authenticated.Use(middlewares.AuthMiddleware)
 
 	projectManagerSprint := authenticated.Group("/sprints")

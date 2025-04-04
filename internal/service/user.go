@@ -163,34 +163,40 @@ func (s *userService) AssignUsersToProject(ctx context.Context, projectID int, u
 }
 
 func (s *userService) Login(ctx context.Context, rq dto.LoginRequest) (string, error) {
+	baseLogger := utils.LoggerFromContext(ctx)
+	logger := baseLogger.With(
+		"component", "UserService",
+		"method", "AssignUsersToProject",
+	)
 	var user *models.User
 	var err error
 
 	user, err = s.userRepository.FindByEmail(ctx, rq.Email)
 	if err != nil {
-		log.Printf("Internal Database Error looking up email %q: %v", rq.Email, err)
+		logger.Error("Internal daatabase error looking up email", "email", rq.Email, "error", err.Error())
 		return "", structs.ErrDatabaseFail
 	}
 
 	if user == nil {
-		log.Printf("No user found with email: %q", rq.Email)
+		logger.Warn("No user found", "email", rq.Email)
 		return "", structs.ErrEmailNotExist
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(rq.Password))
 	if err == nil {
-		log.Printf("User %q provide corrected password.", rq.Email)
+		logger.Info("User provide corrected password","email",rq.Email)
 		token, err := utils.GenerateToken(user.ID, rq.Email, user.Role)
 		if err != nil {
-			log.Printf("Can not sign token for user %q.", rq.Email)
+			logger.Error("Can not sign token for user","email",rq.Email)
 			return "", structs.ErrTokenCanNotBeSigned
 		}
 		return token, nil
 	} else if err == bcrypt.ErrMismatchedHashAndPassword {
-		log.Printf("Incorrect Password Login Attempt for email: %q", rq.Email)
+		logger.Error("Incorrect Password Login Attempt for email","email", rq.Email)
+		logger.Debug("Incorrect Password Login Attempt for email","email", rq.Email,"provided_password",rq.Password)
 		return "", structs.ErrPasswordIncorrect
 	} else {
-		log.Printf("Error comparing password for email %q: %v", rq.Email, err)
+		logger.Error("Error comparing password for email","email", rq.Email,"error",err.Error())
 		return "", structs.ErrInternalServer
 	}
 

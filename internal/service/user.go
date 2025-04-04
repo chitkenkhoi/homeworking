@@ -166,7 +166,7 @@ func (s *userService) Login(ctx context.Context, rq dto.LoginRequest) (string, e
 	baseLogger := utils.LoggerFromContext(ctx)
 	logger := baseLogger.With(
 		"component", "UserService",
-		"method", "AssignUsersToProject",
+		"method", "Login",
 	)
 	var user *models.User
 	var err error

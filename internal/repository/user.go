@@ -94,7 +94,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Info("User with email not found")
-			return nil, structs.ErrUserNotExist
+			return nil, structs.ErrEmailNotExist
 		}
 		logger.Error("Failed to find user by email due to database error", "error", err)
 		return nil, fmt.Errorf("database error finding user by email %s: %w", email, err)

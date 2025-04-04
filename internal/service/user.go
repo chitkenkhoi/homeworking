@@ -173,7 +173,11 @@ func (s *userService) Login(ctx context.Context, rq dto.LoginRequest) (string, e
 
 	user, err = s.userRepository.FindByEmail(ctx, rq.Email)
 	if err != nil {
-		logger.Error("Internal daatabase error looking up email", "email", rq.Email, "error", err.Error())
+		if errors.Is(err, structs.ErrEmailNotExist) {
+			logger.Error("Email does not exist", "email", rq.Email)
+			return "", fmt.Errorf("fail to find email: %w", err)
+		}
+		logger.Error("Internal database error looking up email", "email", rq.Email, "error", err.Error())
 		return "", structs.ErrDatabaseFail
 	}
 
@@ -184,19 +188,19 @@ func (s *userService) Login(ctx context.Context, rq dto.LoginRequest) (string, e
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(rq.Password))
 	if err == nil {
-		logger.Info("User provide corrected password","email",rq.Email)
+		logger.Info("User provide corrected password", "email", rq.Email)
 		token, err := utils.GenerateToken(user.ID, rq.Email, user.Role)
 		if err != nil {
-			logger.Error("Can not sign token for user","email",rq.Email)
+			logger.Error("Can not sign token for user", "email", rq.Email)
 			return "", structs.ErrTokenCanNotBeSigned
 		}
 		return token, nil
 	} else if err == bcrypt.ErrMismatchedHashAndPassword {
-		logger.Error("Incorrect Password Login Attempt for email","email", rq.Email)
-		logger.Debug("Incorrect Password Login Attempt for email","email", rq.Email,"provided_password",rq.Password)
+		logger.Error("Incorrect Password Login Attempt for email", "email", rq.Email)
+		logger.Debug("Incorrect Password Login Attempt for email", "email", rq.Email, "provided_password", rq.Password)
 		return "", structs.ErrPasswordIncorrect
 	} else {
-		logger.Error("Error comparing password for email","email", rq.Email,"error",err.Error())
+		logger.Error("Error comparing password for email", "email", rq.Email, "error", err.Error())
 		return "", structs.ErrInternalServer
 	}
 

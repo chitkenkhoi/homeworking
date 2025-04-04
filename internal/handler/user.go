@@ -93,7 +93,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 				createErrorResponse("Internal server error", err))
 		} else if errors.Is(err, structs.ErrEmailNotExist) || errors.Is(err, structs.ErrPasswordIncorrect) {
 			return c.Status(fiber.StatusBadRequest).JSON(
-				createErrorResponse("User's credential is not correct", err.Error()))
+				createErrorResponse("User's credential is not correct", nil))
 		} else {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				createErrorResponse("Bad request", err.Error()))

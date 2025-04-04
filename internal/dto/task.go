@@ -7,7 +7,7 @@ import (
 )
 
 type CreateTaskRequest struct {
-	Title       string              `json:"tittle"             validate:"required,min=2,max=255"`
+	Title       string              `json:"title"              validate:"required,min=2,max=255"`
 	Description string              `json:"description"        validate:"omitempty,max=65535"`
 	SprintID    int                 `json:"sprint_id"          validate:"required,min=1"`
 	Status      models.TaskStatus   `json:"status"             validate:"omitempty,oneof=TO_DO IN_PROGRESS REVIEW DONE BLOCKED"`

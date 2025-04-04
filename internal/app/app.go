@@ -53,18 +53,22 @@ func (app *App) Setup() error {
 	userRepository := repository.NewUserRepository(db)
 	projectRepository := repository.NewProjectRepository(db, cfg.DateTime)
 	sprintRepository := repository.NewSprintRepository(db, cfg.DateTime)
+	taskRepository := repository.NewTaskRepository(db, cfg.DateTime)
 
 	userService := service.NewUserService(userRepository)
 	projectService := service.NewProjectService(projectRepository, userService)
 	sprintService := service.NewSprintService(sprintRepository, projectService, cfg.DateTime)
+	taskService := service.NewTaskService(taskRepository, projectService, sprintService, userService)
 
 	userHandler := handler.NewUserHandler(userService)
 	projectHandler := handler.NewProjectHandler(projectService, cfg.DateTime)
 	sprintHandler := handler.NewSprintHandler(sprintService, cfg.DateTime)
+	taskHandler := handler.NewTaskHandler(taskService, cfg.DateTime)
 
 	routes.SetupUserRoutes(app.server, userHandler)
 	routes.SetupProjectRoutes(app.server, projectHandler)
 	routes.SetupSprintRoutes(app.server, sprintHandler)
+	routes.SetupTaskRoutes(app.server, taskHandler)
 
 	return nil
 }

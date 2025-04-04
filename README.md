@@ -128,5 +128,6 @@ To ensure the developer understands the requirements, consider asking these ques
 13. What are the advantages of using Go Fiber over other Go frameworks like Gin?
 14. How can you implement and enforce API rate limiting in this service?
 15. What tools and approaches can be used to monitor the performance and health of the backend service?
-
+16. Generic, OpenAPI, Temporal scheduler,
+17. "net/http" ServeMux, viết unit test
 

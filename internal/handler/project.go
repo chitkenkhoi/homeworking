@@ -55,8 +55,6 @@ func (h *ProjectHandler) CreateProjectHandler(c *fiber.Ctx) error {
 	logger.Debug("Validation successful", "input", *input)
 	userClaims, _ := c.Locals("user_claims").(*structs.Claims)
 	project := input.MapToProject(userClaims.UserID)
-	// //optimize memory here
-	//input = nil
 
 	if project, err := h.projectService.CreateProject(ctx, project); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(

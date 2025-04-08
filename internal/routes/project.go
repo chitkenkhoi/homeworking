@@ -19,7 +19,7 @@ func SetupProjectRoutes(prefixApp fiber.Router, h *handler.ProjectHandler, lm fi
 	projectManagerOnly.Use(middlewares.RequireRoleIs(models.ProjectManager))
 
 	projectManagerOnly.Post("/", h.CreateProjectHandler)
-	projectManagerOnly.Post("/:projectId", h.AddTeamMembers)
+	projectManagerOnly.Post("/:projectId/members", h.AddTeamMembers)
 	projectManagerOnly.Get("/", h.ListProjectsHanlder)
 	projectManagerOnly.Get("/:projectId", h.GetProject)
 	projectManagerOnly.Put("/:projectId", h.UpdateProject)

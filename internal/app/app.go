@@ -14,9 +14,24 @@ import (
 	"lqkhoi-go-http-api/internal/repository"
 	"lqkhoi-go-http-api/internal/routes"
 	"lqkhoi-go-http-api/internal/service"
+	_ "lqkhoi-go-http-api/docs"
 
+	swagger "github.com/swaggo/fiber-swagger"
 	"github.com/gofiber/fiber/v2"
 )
+
+// @title           Fiber Example API
+// @version         1.0
+// @description     This is a sample swagger for Fiber
+// @termsOfService  http://swagger.io/terms/
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+// @host      localhost:8081
+// @BasePath  /api/v1
+// @schemes http https
 
 type App struct {
 	server *fiber.App
@@ -57,6 +72,8 @@ func (app *App) Setup() error {
 		logger.Error("Failed to migrate database", "error", err)
 		return err
 	}
+
+	app.server.Get("/swagger/*", swagger.WrapHandler)
 
 	prefixApp := app.server.Group("/api/v1")
 

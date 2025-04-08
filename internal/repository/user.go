@@ -35,14 +35,14 @@ type userRepository struct {
 func NewUserRepository(db *gorm.DB) UserRepository {
 	genericRepo := NewGenericRepository[*models.User, int](
 		db,
-		"User",                  // Model name for logging
-		structs.ErrUserNotExist, // Specific not-found error for users
+		"User",
+		structs.ErrUserNotExist,
 	)
 
 	return &userRepository{
 		GenericRepository: genericRepo,
-		db: db,            // Store the original db
-		q:  query.Use(db), // <--- Initialize the query object here
+		db: db,
+		q:  query.Use(db),
 	}
 }
 

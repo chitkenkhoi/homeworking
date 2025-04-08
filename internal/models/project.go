@@ -28,7 +28,7 @@ type Project struct {
 	Status      ProjectStatus `gorm:"type:project_status;not null;default:'ACTIVE'" json:"status"`
 	ManagerID   int           `json:"manager_id"`
 
-	Manager     *User     `gorm:"foreignKey:ManagerID" json:"manager"`
+	Manager     *User    `gorm:"foreignKey:ManagerID" json:"manager"`
 	Tasks       []Task   `gorm:"foreignKey:ProjectID" json:"tasks,omitempty"`
 	Sprints     []Sprint `gorm:"foreignKey:ProjectID" json:"sprints,omitempty"`
 	TeamMembers []User   `gorm:"foreignKey:CurrentProjectID" json:"team_members,omitempty"`
@@ -42,4 +42,10 @@ func (ps ProjectStatus) IsValid() bool {
 	return false
 }
 
+func (p *Project) GetID() int {
+	return p.ID
+}
 
+func (p *Project) GetPKColumnName() string {
+	return "id"
+}

@@ -27,59 +27,67 @@ type UserRepository interface {
 }
 
 type userRepository struct {
+	*GenericRepository[*models.User, int]
 	db *gorm.DB
 	q  *query.Query
 }
 
 func NewUserRepository(db *gorm.DB) UserRepository {
+	genericRepo := NewGenericRepository[*models.User, int](
+		db,
+		"User",                  // Model name for logging
+		structs.ErrUserNotExist, // Specific not-found error for users
+	)
+
 	return &userRepository{
+		GenericRepository: genericRepo,
 		db: db,            // Store the original db
 		q:  query.Use(db), // <--- Initialize the query object here
 	}
 }
 
-func (r *userRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "UserRepository",
-		"method", "Create",
-	)
-	logger.Debug("Starting create user process", "email", user.Email, "role", user.Role)
+// func (r *userRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "UserRepository",
+// 		"method", "Create",
+// 	)
+// 	logger.Debug("Starting create user process", "email", user.Email, "role", user.Role)
 
-	err := r.q.User.WithContext(ctx).Create(user)
-	if err != nil {
-		logger.Error("Failed to create user", "error", err)
-		return nil, structs.ErrDataViolateConstraint
-	}
+// 	err := r.q.User.WithContext(ctx).Create(user)
+// 	if err != nil {
+// 		logger.Error("Failed to create user", "error", err)
+// 		return nil, structs.ErrDataViolateConstraint
+// 	}
 
-	logger.Info("Successfully created user", "user_id", user.ID)
-	return user, nil
-}
+// 	logger.Info("Successfully created user", "user_id", user.ID)
+// 	return user, nil
+// }
 
-func (r *userRepository) FindByID(ctx context.Context, id int) (*models.User, error) {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "UserRepository",
-		"method", "FindByID",
-		"user_id", id,
-	)
-	logger.Debug("Starting find user by ID process")
+// func (r *userRepository) FindByID(ctx context.Context, id int) (*models.User, error) {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "UserRepository",
+// 		"method", "FindByID",
+// 		"user_id", id,
+// 	)
+// 	logger.Debug("Starting find user by ID process")
 
-	u := r.q.User
-	user, err := u.WithContext(ctx).Where(u.ID.Eq(id)).First()
+// 	u := r.q.User
+// 	user, err := u.WithContext(ctx).Where(u.ID.Eq(id)).First()
 
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logger.Warn("User not found")
-			return nil, structs.ErrUserNotExist
-		}
-		logger.Error("Failed to find user by ID due to database error", "error", err)
-		return nil, fmt.Errorf("database error finding user %d: %w", id, err)
-	}
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			logger.Warn("User not found")
+// 			return nil, structs.ErrUserNotExist
+// 		}
+// 		logger.Error("Failed to find user by ID due to database error", "error", err)
+// 		return nil, fmt.Errorf("database error finding user %d: %w", id, err)
+// 	}
 
-	logger.Info("Successfully found user by ID")
-	return user, nil
-}
+// 	logger.Info("Successfully found user by ID")
+// 	return user, nil
+// }
 
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	baseLogger := utils.LoggerFromContext(ctx)
@@ -125,62 +133,62 @@ func (r *userRepository) List(ctx context.Context) ([]*models.User, error) {
 	return users, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, id int, updateMap map[string]any) error {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "UserRepository",
-		"method", "Update",
-		"user_id", id,
-	)
-	logger.Debug("Starting update user process", "update_data_keys", utils.MapKeys(updateMap)) // Log only keys
+// func (r *userRepository) Update(ctx context.Context, id int, updateMap map[string]any) error {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "UserRepository",
+// 		"method", "Update",
+// 		"user_id", id,
+// 	)
+// 	logger.Debug("Starting update user process", "update_data_keys", utils.MapKeys(updateMap)) // Log only keys
 
-	if len(updateMap) == 0 {
-		logger.Info("Update map is empty after validation, skipping database call.")
-		return nil
-	}
+// 	if len(updateMap) == 0 {
+// 		logger.Info("Update map is empty after validation, skipping database call.")
+// 		return nil
+// 	}
 
-	u := r.q.User
-	resultInfo, err := u.WithContext(ctx).Where(u.ID.Eq(id)).Updates(updateMap)
+// 	u := r.q.User
+// 	resultInfo, err := u.WithContext(ctx).Where(u.ID.Eq(id)).Updates(updateMap)
 
-	if err != nil {
-		logger.Error("Failed to update user", "error", err)
-		return fmt.Errorf("failed to update user %d: %w", id, err)
-	}
+// 	if err != nil {
+// 		logger.Error("Failed to update user", "error", err)
+// 		return fmt.Errorf("failed to update user %d: %w", id, err)
+// 	}
 
-	if resultInfo.RowsAffected == 0 {
-		logger.Warn("Update executed but no user found with the given ID or data was the same")
-		return structs.ErrUserNotExist
-	}
+// 	if resultInfo.RowsAffected == 0 {
+// 		logger.Warn("Update executed but no user found with the given ID or data was the same")
+// 		return structs.ErrUserNotExist
+// 	}
 
-	logger.Info("Successfully updated user", "rows_affected", resultInfo.RowsAffected)
-	return nil
-}
+// 	logger.Info("Successfully updated user", "rows_affected", resultInfo.RowsAffected)
+// 	return nil
+// }
 
-func (r *userRepository) Delete(ctx context.Context, id int) error {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "UserRepository",
-		"method", "Delete",
-		"user_id", id,
-	)
-	logger.Debug("Starting delete user process")
+// func (r *userRepository) Delete(ctx context.Context, id int) error {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "UserRepository",
+// 		"method", "Delete",
+// 		"user_id", id,
+// 	)
+// 	logger.Debug("Starting delete user process")
 
-	u := r.q.User
-	resultInfo, err := u.WithContext(ctx).Where(u.ID.Eq(id)).Delete()
+// 	u := r.q.User
+// 	resultInfo, err := u.WithContext(ctx).Where(u.ID.Eq(id)).Delete()
 
-	if err != nil {
-		logger.Error("Failed to delete user due to database error", "error", err)
-		return structs.ErrDatabaseFail
-	}
+// 	if err != nil {
+// 		logger.Error("Failed to delete user due to database error", "error", err)
+// 		return structs.ErrDatabaseFail
+// 	}
 
-	if resultInfo.RowsAffected == 0 {
-		logger.Warn("Delete executed but no user found with the given ID")
-		return structs.ErrUserNotExist
-	}
+// 	if resultInfo.RowsAffected == 0 {
+// 		logger.Warn("Delete executed but no user found with the given ID")
+// 		return structs.ErrUserNotExist
+// 	}
 
-	logger.Info("Successfully deleted user", "rows_affected", resultInfo.RowsAffected)
-	return nil
-}
+// 	logger.Info("Successfully deleted user", "rows_affected", resultInfo.RowsAffected)
+// 	return nil
+// }
 
 func (r *userRepository) FindByIDs(ctx context.Context, userIDs []int) ([]*models.User, error) {
 	baseLogger := utils.LoggerFromContext(ctx)

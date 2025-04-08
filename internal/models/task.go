@@ -44,3 +44,11 @@ type Task struct {
 	Project  *Project `gorm:"foreignKey:ProjectID;references:ID" json:"project"`
 	Sprint   *Sprint  `gorm:"foreignKey:SprintID;references:ID" json:"sprint"`
 }
+
+func (t *Task) GetID() int {
+	return t.ID
+}
+
+func (t *Task) GetPKColumnName() string {
+	return "id"
+}

@@ -30,64 +30,72 @@ type taskRepository struct {
 	db  *gorm.DB
 	cfg config.DateTimeConfig
 	q   *query.Query
+	*GenericRepository[*models.Task, int]
 }
 
 func NewTaskRepository(db *gorm.DB, cfg config.DateTimeConfig) TaskRepository {
+	genericRepo := NewGenericRepository[*models.Task, int](
+		db,
+		"Task",
+		structs.ErrTaskNotExist,
+	)
+
 	return &taskRepository{
 		db:  db,
 		cfg: cfg,
 		q:   query.Use(db),
+		GenericRepository: genericRepo,
 	}
 }
 
-func (r *taskRepository) Create(ctx context.Context, task *models.Task) (*models.Task, error) {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "TaskRepository",
-		"method", "Create",
-	)
-	logger.Debug("Starting create task process", "task_tittle", task.Title)
+// func (r *taskRepository) Create(ctx context.Context, task *models.Task) (*models.Task, error) {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "TaskRepository",
+// 		"method", "Create",
+// 	)
+// 	logger.Debug("Starting create task process", "task_tittle", task.Title)
 
-	err := r.q.Task.WithContext(ctx).Create(task)
-	if err != nil {
-		logger.Error("Failed to create task", "error", err)
-		return nil, structs.ErrDataViolateConstraint
-	}
+// 	err := r.q.Task.WithContext(ctx).Create(task)
+// 	if err != nil {
+// 		logger.Error("Failed to create task", "error", err)
+// 		return nil, structs.ErrDataViolateConstraint
+// 	}
 
-	logger.Info("Successfully created task", "task_id", task.ID)
-	logger.Debug("Created task details", "task", *task)
-	return task, nil
-}
+// 	logger.Info("Successfully created task", "task_id", task.ID)
+// 	logger.Debug("Created task details", "task", *task)
+// 	return task, nil
+// }
 
-func (r *taskRepository) FindByID(ctx context.Context, id int) (*models.Task, error) {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "TaskRepository",
-		"method", "FindByID",
-		"task_id", id,
-	)
-	logger.Debug("Starting find task by ID process")
+// func (r *taskRepository) FindByID(ctx context.Context, id int) (*models.Task, error) {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "TaskRepository",
+// 		"method", "FindByID",
+// 		"task_id", id,
+// 	)
+// 	logger.Debug("Starting find task by ID process")
 
-	s := r.q.Task
-	task, err := s.WithContext(ctx).
-		Where(s.ID.Eq(id)).
-		Preload(s.Assignee).
-		Preload(s.Project).
-		Preload(s.Sprint).
-		First()
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logger.Warn("Task not found")
-			return nil, structs.ErrTaskNotExist
-		}
-		logger.Error("Failed to find task by ID due to database error", "error", err)
-		return nil, structs.ErrDatabaseFail
-	}
+// 	s := r.q.Task
+// 	task, err := s.WithContext(ctx).
+// 		Where(s.ID.Eq(id)).
+// 		Preload(s.Assignee).
+// 		Preload(s.Project).
+// 		Preload(s.Sprint).
+// 		First()
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			logger.Warn("Task not found")
+// 			return nil, structs.ErrTaskNotExist
+// 		}
+// 		logger.Error("Failed to find task by ID due to database error", "error", err)
+// 		return nil, structs.ErrDatabaseFail
+// 	}
 
-	logger.Info("Successfully found task by ID")
-	logger.Debug("Successfully retrieved task with associations", "task", task.ID, "sprintName", task.Sprint.Name, "projectName", task.Project.Name) // Example using preloaded data
-	return task, nil
-}
+// 	logger.Info("Successfully found task by ID")
+// 	logger.Debug("Successfully retrieved task with associations", "task", task.ID, "sprintName", task.Sprint.Name, "projectName", task.Project.Name) // Example using preloaded data
+// 	return task, nil
+// }
 
 func (r *taskRepository) FindTasksByProjectID(ctx context.Context, projectID int) ([]*models.Task, error) {
 	baseLogger := utils.LoggerFromContext(ctx)
@@ -208,54 +216,54 @@ func (r *taskRepository) AssignTaskToUser(ctx context.Context, userID, taskID in
 	return nil
 }
 
-func (r *taskRepository) Update(ctx context.Context, id int, updateMap map[string]any) error {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "TaskRepository",
-		"method", "Update",
-		"task_id", id,
-	)
-	logger.Debug("Starting update task process", "update_data", updateMap)
+// func (r *taskRepository) Update(ctx context.Context, id int, updateMap map[string]any) error {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "TaskRepository",
+// 		"method", "Update",
+// 		"task_id", id,
+// 	)
+// 	logger.Debug("Starting update task process", "update_data", updateMap)
 
-	s := r.q.Task
-	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Updates(updateMap)
+// 	s := r.q.Task
+// 	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Updates(updateMap)
 
-	if err != nil {
-		logger.Error("Failed to update task", "error", err)
-		return fmt.Errorf("failed to update task %d: %w", id, err)
-	}
+// 	if err != nil {
+// 		logger.Error("Failed to update task", "error", err)
+// 		return fmt.Errorf("failed to update task %d: %w", id, err)
+// 	}
 
-	if resultInfo.RowsAffected == 0 {
-		logger.Warn("Update executed but no task found with the given ID or data was the same")
-		return structs.ErrTaskNotExist
-	}
+// 	if resultInfo.RowsAffected == 0 {
+// 		logger.Warn("Update executed but no task found with the given ID or data was the same")
+// 		return structs.ErrTaskNotExist
+// 	}
 
-	logger.Info("Successfully updated task", "rows_affected", resultInfo.RowsAffected)
-	return nil
-}
+// 	logger.Info("Successfully updated task", "rows_affected", resultInfo.RowsAffected)
+// 	return nil
+// }
 
-func (r *taskRepository) Delete(ctx context.Context, id int) error {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "TaskRepository",
-		"method", "Delete",
-		"task_id", id,
-	)
-	logger.Debug("Starting delete task process")
+// func (r *taskRepository) Delete(ctx context.Context, id int) error {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "TaskRepository",
+// 		"method", "Delete",
+// 		"task_id", id,
+// 	)
+// 	logger.Debug("Starting delete task process")
 
-	s := r.q.Task
-	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Delete()
+// 	s := r.q.Task
+// 	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Delete()
 
-	if err != nil {
-		logger.Error("Failed to delete task due to database error", "error", err)
-		return structs.ErrDatabaseFail
-	}
+// 	if err != nil {
+// 		logger.Error("Failed to delete task due to database error", "error", err)
+// 		return structs.ErrDatabaseFail
+// 	}
 
-	if resultInfo.RowsAffected == 0 {
-		logger.Warn("Delete executed but no sprint found with the given ID")
-		return structs.ErrTaskNotExist
-	}
+// 	if resultInfo.RowsAffected == 0 {
+// 		logger.Warn("Delete executed but no sprint found with the given ID")
+// 		return structs.ErrTaskNotExist
+// 	}
 
-	logger.Info("Successfully deleted task", "rows_affected", resultInfo.RowsAffected)
-	return nil
-}
+// 	logger.Info("Successfully deleted task", "rows_affected", resultInfo.RowsAffected)
+// 	return nil
+// }

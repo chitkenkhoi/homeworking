@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"lqkhoi-go-http-api/internal/config"
@@ -27,64 +26,72 @@ type sprintRepository struct {
 	db  *gorm.DB
 	cfg config.DateTimeConfig
 	q   *query.Query
+	*GenericRepository[*models.Sprint, int]
 }
 
 func NewSprintRepository(db *gorm.DB, cfg config.DateTimeConfig) SprintRepository {
+	genericRepo := NewGenericRepository[*models.Sprint, int](
+		db,
+		"Sprint",
+		structs.ErrSprintNotExist,
+	)
+
 	return &sprintRepository{
-		db:  db,
-		cfg: cfg,
-		q:   query.Use(db),
+		db:                db,
+		cfg:               cfg,
+		q:                 query.Use(db),
+		GenericRepository: genericRepo,
 	}
 }
 
-func (r *sprintRepository) Create(ctx context.Context, sprint *models.Sprint) (*models.Sprint, error) {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "SprintRepository",
-		"method", "Create",
-	)
-	logger.Debug("Starting create sprint process", "sprint_name", sprint.Name, "project_id", sprint.ProjectID)
+// func (r *sprintRepository) Create(ctx context.Context, sprint *models.Sprint) (*models.Sprint, error) {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "SprintRepository",
+// 		"method", "Create",
+// 	)
+// 	logger.Debug("Starting create sprint process", "sprint_name", sprint.Name, "project_id", sprint.ProjectID)
 
-	err := r.q.Sprint.WithContext(ctx).Create(sprint)
-	if err != nil {
-		logger.Error("Failed to create sprint", "error", err)
-		return nil, structs.ErrDataViolateConstraint
-	}
+// 	err := r.q.Sprint.WithContext(ctx).Create(sprint)
+// 	if err != nil {
+// 		logger.Error("Failed to create sprint", "error", err)
+// 		return nil, structs.ErrDataViolateConstraint
+// 	}
 
-	logger.Info("Successfully created sprint", "sprint_id", sprint.ID)
-	logger.Debug("Created sprint details", "sprint", *sprint)
-	return sprint, nil
-}
+// 	logger.Info("Successfully created sprint", "sprint_id", sprint.ID)
+// 	logger.Debug("Created sprint details", "sprint", *sprint)
+// 	return sprint, nil
+// }
 
-func (r *sprintRepository) FindByID(ctx context.Context, id int) (*models.Sprint, error) {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "SprintRepository",
-		"method", "FindByID",
-		"sprint_id", id,
-	)
-	logger.Debug("Starting find sprint by ID process")
+// func (r *sprintRepository) FindByID(ctx context.Context, id int) (*models.Sprint, error) {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "SprintRepository",
+// 		"method", "FindByID",
+// 		"sprint_id", id,
+// 	)
+// 	logger.Debug("Starting find sprint by ID process")
 
-	s := r.q.Sprint
-	sprint, err := s.WithContext(ctx).
-		Where(s.ID.Eq(id)).
-		Preload(s.Tasks).
-		Preload(s.Project).
-		First()
+// 	s := r.q.Sprint
+// 	sprint, err := s.WithContext(ctx).
+// 		Where(s.ID.Eq(id)).
+// 		Preload(s.Tasks).
+// 		Preload(s.Project).
+// 		First()
 
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logger.Warn("Sprint not found")
-			return nil, structs.ErrSprintNotExist
-		}
-		logger.Error("Failed to find sprint by ID due to database error", "error", err)
-		return nil, structs.ErrDatabaseFail
-	}
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			logger.Warn("Sprint not found")
+// 			return nil, structs.ErrSprintNotExist
+// 		}
+// 		logger.Error("Failed to find sprint by ID due to database error", "error", err)
+// 		return nil, structs.ErrDatabaseFail
+// 	}
 
-	logger.Info("Successfully found sprint by ID")
-	logger.Debug("Successfully retrieved sprint with associations", "sprintID", sprint.ID, "taskCount", len(sprint.Tasks), "projectName", sprint.Project.Name) // Example using preloaded data
-	return sprint, nil
-}
+// 	logger.Info("Successfully found sprint by ID")
+// 	logger.Debug("Successfully retrieved sprint with associations", "sprintID", sprint.ID, "taskCount", len(sprint.Tasks), "projectName", sprint.Project.Name) // Example using preloaded data
+// 	return sprint, nil
+// }
 
 func (r *sprintRepository) Find(ctx context.Context, filter *dto.SprintFilter) ([]*models.Sprint, error) {
 	baseLogger := utils.LoggerFromContext(ctx)
@@ -131,54 +138,54 @@ func (r *sprintRepository) Find(ctx context.Context, filter *dto.SprintFilter) (
 	return sprints, nil
 }
 
-func (r *sprintRepository) Update(ctx context.Context, id int, updateMap map[string]any) error {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "SprintRepository",
-		"method", "Update",
-		"sprint_id", id,
-	)
-	logger.Debug("Starting update sprint process", "update_data", updateMap)
+// func (r *sprintRepository) Update(ctx context.Context, id int, updateMap map[string]any) error {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "SprintRepository",
+// 		"method", "Update",
+// 		"sprint_id", id,
+// 	)
+// 	logger.Debug("Starting update sprint process", "update_data", updateMap)
 
-	s := r.q.Sprint
-	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Updates(updateMap)
+// 	s := r.q.Sprint
+// 	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Updates(updateMap)
 
-	if err != nil {
-		logger.Error("Failed to update sprint", "error", err)
-		return fmt.Errorf("failed to update sprint %d: %w", id, err)
-	}
+// 	if err != nil {
+// 		logger.Error("Failed to update sprint", "error", err)
+// 		return fmt.Errorf("failed to update sprint %d: %w", id, err)
+// 	}
 
-	if resultInfo.RowsAffected == 0 {
-		logger.Warn("Update executed but no sprint found with the given ID or data was the same")
-		return structs.ErrSprintNotExist
-	}
+// 	if resultInfo.RowsAffected == 0 {
+// 		logger.Warn("Update executed but no sprint found with the given ID or data was the same")
+// 		return structs.ErrSprintNotExist
+// 	}
 
-	logger.Info("Successfully updated sprint", "rows_affected", resultInfo.RowsAffected)
-	return nil
-}
+// 	logger.Info("Successfully updated sprint", "rows_affected", resultInfo.RowsAffected)
+// 	return nil
+// }
 
-func (r *sprintRepository) Delete(ctx context.Context, id int) error {
-	baseLogger := utils.LoggerFromContext(ctx)
-	logger := baseLogger.With(
-		"component", "SprintRepository",
-		"method", "Delete",
-		"sprint_id", id,
-	)
-	logger.Debug("Starting delete sprint process")
+// func (r *sprintRepository) Delete(ctx context.Context, id int) error {
+// 	baseLogger := utils.LoggerFromContext(ctx)
+// 	logger := baseLogger.With(
+// 		"component", "SprintRepository",
+// 		"method", "Delete",
+// 		"sprint_id", id,
+// 	)
+// 	logger.Debug("Starting delete sprint process")
 
-	s := r.q.Sprint
-	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Delete()
+// 	s := r.q.Sprint
+// 	resultInfo, err := s.WithContext(ctx).Where(s.ID.Eq(id)).Delete()
 
-	if err != nil {
-		logger.Error("Failed to delete sprint due to database error", "error", err)
-		return structs.ErrDatabaseFail
-	}
+// 	if err != nil {
+// 		logger.Error("Failed to delete sprint due to database error", "error", err)
+// 		return structs.ErrDatabaseFail
+// 	}
 
-	if resultInfo.RowsAffected == 0 {
-		logger.Warn("Delete executed but no sprint found with the given ID")
-		return structs.ErrSprintNotExist
-	}
+// 	if resultInfo.RowsAffected == 0 {
+// 		logger.Warn("Delete executed but no sprint found with the given ID")
+// 		return structs.ErrSprintNotExist
+// 	}
 
-	logger.Info("Successfully deleted sprint", "rows_affected", resultInfo.RowsAffected)
-	return nil
-}
+// 	logger.Info("Successfully deleted sprint", "rows_affected", resultInfo.RowsAffected)
+// 	return nil
+// }

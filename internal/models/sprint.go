@@ -21,3 +21,11 @@ type Sprint struct {
 	Project *Project `gorm:"foreignKey:ProjectID;references:ID" json:"project"`
 	Tasks   []Task   `gorm:"foreignKey:SprintID" json:"tasks,omitempty"`
 }
+
+func (s *Sprint) GetID() int {
+	return s.ID
+}
+
+func (s *Sprint) GetPKColumnName() string {
+	return "id"
+}

@@ -13,6 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
+//go:generate mockgen -destination=./mocks/mock_user.go -package=mocks . UserRepository
+
 type UserRepository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	FindByID(ctx context.Context, id int) (*models.User, error)

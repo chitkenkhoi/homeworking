@@ -27,6 +27,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/swag v1.16.4 // indirect
+	go.uber.org/mock v0.5.1 // indirect
 )
 
 require (

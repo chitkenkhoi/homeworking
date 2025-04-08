@@ -6,7 +6,7 @@ import (
 
 func createErrorResponse(msg string, err any) fiber.Map {
 	return fiber.Map{
-		"error":   msg,
+		"message":   msg,
 		"details": err,
 	}
 }

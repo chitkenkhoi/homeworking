@@ -17,6 +17,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+//go:generate mockgen -destination=./mocks/mock_user.go -package=mocks . UserService
+
 type UserService interface {
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	FindByID(ctx context.Context, id int) (*models.User, error)

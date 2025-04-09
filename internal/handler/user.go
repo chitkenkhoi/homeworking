@@ -32,7 +32,7 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 // @Accept json
 // @Produce json
 // @Param user body dto.CreateUserRequest true "User creation request"
-// @Success 201 {object} dto.SuccessResponse[dto.UserResponse] "User created successfully"
+// @Success 201 {object} dto.UserSuccessResponse "User created successfully"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid input or validation failure"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /users [post]
@@ -139,7 +139,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 // @Tags Users
 // @Produce json
 // @Security BearerAuth
-// @Success 302 {object} dto.SuccessResponse[dto.UserResponse] "User found"
+// @Success 302 {object} dto.UserSuccessResponse "User found"
 // @Failure 404 {object} dto.ErrorResponse "User not found"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /me [get]
@@ -177,7 +177,7 @@ func (h *UserHandler) GetMe(c *fiber.Ctx) error {
 // @Tags Users
 // @Produce json
 // @Param userId path int true "User ID"
-// @Success 302 {object} dto.SuccessResponse[dto.UserResponse] "User found"
+// @Success 302 {object} dto.UserSuccessResponse "User found"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid ID"
 // @Failure 404 {object} dto.ErrorResponse "User not found"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
@@ -223,7 +223,7 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 // @Produce json
 // @Param userId path int true "User ID"
 // @Param user body dto.UpdateUserRequest true "User update request"
-// @Success 202 {object} dto.SuccessResponse[dto.UserResponse] "User updated"
+// @Success 202 {object} dto.UserSuccessResponse "User updated"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid input or ID"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /users/{userId} [put]
@@ -274,7 +274,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 // @Description Retrieves a list of all users
 // @Tags Users
 // @Produce json
-// @Success 200 {object} dto.SliceSuccessResponse[dto.UserResponse] "Users found"
+// @Success 200 {object} dto.UserSliceSuccessResponse "Users found"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Database error"
 // @Router /users [get]
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
@@ -295,7 +295,7 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 // @Tags Users
 // @Produce json
 // @Param userId path int true "User ID"
-// @Success 200 {object} dto.SuccessResponse[interface{}] "User deleted"
+// @Success 200 {object} dto.GenericSuccessResponse "User deleted"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid ID or user not found"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /users/{userId} [delete]

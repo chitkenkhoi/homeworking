@@ -9,23 +9,17 @@ import (
 // CreateTaskRequest represents the request body for creating a new task.
 type CreateTaskRequest struct {
 	// Title is the title of the task.
-	// @example "Implement login API"
-	Title       string              `json:"title"              validate:"required,min=2,max=255"`
+	Title       string              `json:"title" validate:"required,min=2,max=255" example:"Implement login API"`
 	// Description is an optional detailed description of the task.
-	// @example "Create a RESTful endpoint for user authentication."
-	Description string              `json:"description"        validate:"omitempty,max=65535"`
+	Description string              `json:"description" validate:"omitempty,max=65535" example:"Create a RESTful endpoint for user authentication."`
 	// SprintID is the ID of the sprint this task belongs to.
-	// @example 1
-	SprintID    int                 `json:"sprint_id"          validate:"required,min=1"`
+	SprintID    int                 `json:"sprint_id" validate:"required,min=1" example:"1"`
 	// Status is the current status of the task.
-	// @example "TO_DO"
-	Status      models.TaskStatus   `json:"status"             validate:"omitempty,oneof=TO_DO IN_PROGRESS REVIEW DONE BLOCKED"`
+	Status      models.TaskStatus   `json:"status" validate:"omitempty,oneof=TO_DO IN_PROGRESS REVIEW DONE BLOCKED" example:"TO_DO"`
 	// Priority is the priority level of the task.
-	// @example "HIGH"
-	Priority    models.TaskPriority `json:"priority"           validate:"omitempty,oneof=HIGH MEDIUM LOW CRITICAL"`
+	Priority    models.TaskPriority `json:"priority" validate:"omitempty,oneof=HIGH MEDIUM LOW CRITICAL" example:"HIGH"`
 	// DueDate is the optional due date of the task.
-	// @example "2025-04-20T00:00:00Z"
-	DueDate     *time.Time          `json:"due_date,omitempty" validate:"omitempty"`
+	DueDate     *time.Time          `json:"due_date,omitempty" validate:"omitempty" example:"2025-04-20T00:00:00Z"`
 }
 
 func (ctr *CreateTaskRequest) MapToTask() *models.Task {
@@ -43,44 +37,31 @@ func (ctr *CreateTaskRequest) MapToTask() *models.Task {
 // TaskResponse represents the response body for detailed task information.
 type TaskResponse struct {
 	// ID is the unique identifier of the task.
-	// @example 101
-	ID                int                 `json:"id"`
+	ID                int                 `json:"id" example:"101"`
 	// Title is the title of the task.
-	// @example "Implement login API"
-	Title             string              `json:"title"`
+	Title             string              `json:"title" example:"Implement login API"`
 	// Description is the detailed description of the task.
-	// @example "Create a RESTful endpoint for user authentication."
-	Description       string              `json:"description"`
+	Description       string              `json:"description" example:"Create a RESTful endpoint for user authentication."`
 	// AssigneeID is the optional ID of the user assigned to the task.
-	// @example 42
-	AssigneeID        *int                `json:"assignee_id,omitempty"`
+	AssigneeID        *int                `json:"assignee_id,omitempty" example:"42"`
 	// AssigneeFirstName is the optional first name of the assignee.
-	// @example "John"
-	AssigneeFirstName *string             `json:"assignee_first_name,omitempty"`
+	AssigneeFirstName *string             `json:"assignee_first_name,omitempty" example:"John"`
 	// AssigneeLastName is the optional last name of the assignee.
-	// @example "Doe"
-	AssigneeLastName  *string             `json:"assignee_last_name,omitempty"`
+	AssigneeLastName  *string             `json:"assignee_last_name,omitempty" example:"Doe"`
 	// ProjectID is the ID of the project this task belongs to.
-	// @example 1
-	ProjectID         int                 `json:"project_id"`
+	ProjectID         int                 `json:"project_id" example:"1"`
 	// ProjectName is the name of the project this task belongs to.
-	// @example "Website Redesign"
-	ProjectName       string              `json:"project_name"`
+	ProjectName       string              `json:"project_name" example:"Website Redesign"`
 	// SprintID is the ID of the sprint this task belongs to.
-	// @example 1
-	SprintID          int                 `json:"sprint_id"`
+	SprintID          int                 `json:"sprint_id" example:"1"`
 	// SprintName is the name of the sprint this task belongs to.
-	// @example "Sprint 1"
-	SprintName        string              `json:"sprint_name"`
+	SprintName        string              `json:"sprint_name" example:"Sprint 1"`
 	// Status is the current status of the task.
-	// @example "IN_PROGRESS"
-	Status            models.TaskStatus   `json:"status"`
+	Status            models.TaskStatus   `json:"status" example:"IN_PROGRESS"`
 	// Priority is the priority level of the task.
-	// @example "HIGH"
-	Priority          models.TaskPriority `json:"priority"`
+	Priority          models.TaskPriority `json:"priority" example:"HIGH"`
 	// DueDate is the optional due date of the task.
-	// @example "2025-04-20T00:00:00Z"
-	DueDate           *time.Time          `json:"due_date,omitempty"`
+	DueDate           *time.Time          `json:"due_date,omitempty" example:"2025-04-20T00:00:00Z"`
 }
 
 func MapToTaskResponse(task *models.Task) *TaskResponse {
@@ -121,38 +102,27 @@ func MapToTaskResponse(task *models.Task) *TaskResponse {
 // TaskInSliceResponse represents a task in a list response.
 type TaskInSliceResponse struct {
 	// ID is the unique identifier of the task.
-	// @example 101
-	ID                int                 `json:"id"`
+	ID                int                 `json:"id" example:"101"`
 	// Title is the title of the task.
-	// @example "Implement login API"
-	Title             string              `json:"title"`
+	Title             string              `json:"title" example:"Implement login API"`
 	// Description is the detailed description of the task.
-	// @example "Create a RESTful endpoint for user authentication."
-	Description       string              `json:"description"`
+	Description       string              `json:"description" example:"Create a RESTful endpoint for user authentication."`
 	// SprintID is the ID of the sprint this task belongs to.
-	// @example 1
-	SprintID          int                 `json:"sprint_id"`
+	SprintID          int                 `json:"sprint_id" example:"1"`
 	// ProjectID is the ID of the project this task belongs to.
-	// @example 1
-	ProjectID         int                 `json:"project_id"`
+	ProjectID         int                 `json:"project_id" example:"1"`
 	// AssigneeID is the optional ID of the user assigned to the task.
-	// @example 42
-	AssigneeID        *int                `json:"assignee_id,omitempty"`
+	AssigneeID        *int                `json:"assignee_id,omitempty" example:"42"`
 	// AssigneeFirstName is the optional first name of the assignee.
-	// @example "John"
-	AssigneeFirstName *string             `json:"assignee_first_name,omitempty"`
+	AssigneeFirstName *string             `json:"assignee_first_name,omitempty" example:"John"`
 	// AssigneeLastName is the optional last name of the assignee.
-	// @example "Doe"
-	AssigneeLastName  *string             `json:"assignee_last_name,omitempty"`
+	AssigneeLastName  *string             `json:"assignee_last_name,omitempty" example:"Doe"`
 	// Status is the current status of the task.
-	// @example "IN_PROGRESS"
-	Status            models.TaskStatus   `json:"status"`
+	Status            models.TaskStatus   `json:"status" example:"IN_PROGRESS"`
 	// Priority is the priority level of the task.
-	// @example "HIGH"
-	Priority          models.TaskPriority `json:"priority"`
+	Priority          models.TaskPriority `json:"priority" example:"HIGH"`
 	// DueDate is the optional due date of the task.
-	// @example "2025-04-20T00:00:00Z"
-	DueDate           *time.Time          `json:"due_date,omitempty"`
+	DueDate           *time.Time          `json:"due_date,omitempty" example:"2025-04-20T00:00:00Z"`
 }
 
 func MapToSliceOfTaskResponse(tasks []*models.Task) []TaskInSliceResponse {
@@ -184,37 +154,27 @@ func MapToSliceOfTaskResponse(tasks []*models.Task) []TaskInSliceResponse {
 // UpdateTaskRequest represents the request body for updating an existing task.
 type UpdateTaskRequest struct {
 	// Title is the optional new title of the task.
-	// @example "Update login API"
-	Title       *string              `json:"title"              validate:"omitempty,min=2,max=255"`
+	Title       *string              `json:"title" validate:"omitempty,min=2,max=255" example:"Update login API"`
 	// Description is the optional new description of the task.
-	// @example "Modify endpoint to include JWT."
-	Description *string              `json:"description"        validate:"omitempty,max=65535"`
+	Description *string              `json:"description" validate:"omitempty,max=65535" example:"Modify endpoint to include JWT."`
 	// Status is the optional new status of the task.
-	// @example "REVIEW"
-	Status      *models.TaskStatus   `json:"status"             validate:"omitempty,oneof=TO_DO IN_PROGRESS REVIEW DONE BLOCKED"`
+	Status      *models.TaskStatus   `json:"status" validate:"omitempty,oneof=TO_DO IN_PROGRESS REVIEW DONE BLOCKED" example:"REVIEW"`
 	// Priority is the optional new priority level of the task.
-	// @example "MEDIUM"
-	Priority    *models.TaskPriority `json:"priority"           validate:"omitempty,oneof=HIGH MEDIUM LOW CRITICAL"`
+	Priority    *models.TaskPriority `json:"priority" validate:"omitempty,oneof=HIGH MEDIUM LOW CRITICAL" example:"MEDIUM"`
 	// DueDate is the optional new due date of the task.
-	// @example "2025-04-25T00:00:00Z"
-	DueDate     *time.Time           `json:"due_date,omitempty" validate:"omitempty"`
+	DueDate     *time.Time           `json:"due_date,omitempty" validate:"omitempty" example:"2025-04-25T00:00:00Z"`
 }
 
 // TaskFilter represents filtering options for querying tasks.
 type TaskFilter struct {
 	// ID is the optional task ID to filter by.
-	// @example 101
 	ID            *int
 	// Title is the optional task title to filter by.
-	// @example "Implement login API"
 	Title         *string
 	// Status is the optional task status to filter by.
-	// @example "IN_PROGRESS"
 	Status        *models.TaskStatus
 	// Priority is the optional task priority to filter by.
-	// @example "HIGH"
 	Priority      *models.TaskPriority
 	// DueDateBefore is the optional due date to filter tasks due before.
-	// @example "2025-05-01T00:00:00Z"
 	DueDateBefore *time.Time
 }

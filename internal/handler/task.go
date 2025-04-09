@@ -36,7 +36,7 @@ func NewTaskHandler(taskService service.TaskService, cfg config.DateTimeConfig) 
 // @Produce json
 // @Security BearerAuth
 // @Param task body dto.CreateTaskRequest true "Task creation request"
-// @Success 201 {object} dto.SuccessResponse[dto.TaskResponse] "Task created successfully"
+// @Success 201 {object} dto.TaskSuccessResponse "Task created successfully"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid input"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Sprint not found"
@@ -100,7 +100,7 @@ func (h *TaskHandler) CreateTask(c *fiber.Ctx) error {
 // @Produce json
 // @Security BearerAuth
 // @Param taskId path int true "Task ID"
-// @Success 202 {object} dto.SuccessResponse[dto.TaskResponse] "Task found"
+// @Success 202 {object} dto.TaskSuccessResponse "Task found"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid task ID"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Task not found"
@@ -150,7 +150,7 @@ func (h *TaskHandler) GetTask(c *fiber.Ctx) error {
 // @Tags Tasks
 // @Produce json
 // @Param userId path int true "User ID"
-// @Success 202 {object} dto.SliceSuccessResponse[dto.TaskResponse] "Tasks found"
+// @Success 202 {object} dto.TaskSliceSuccessResponse "Tasks found"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid user ID"
 // @Failure 404 {object} dto.ErrorResponse "Not found - User not found"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
@@ -191,7 +191,7 @@ func (h *TaskHandler) FindTasksByUserID(c *fiber.Ctx) error {
 // @Produce json
 // @Security BearerAuth
 // @Param projectId path int true "Project ID"
-// @Success 202 {object} dto.SliceSuccessResponse[dto.TaskResponse] "Tasks found"
+// @Success 202 {object} dto.TaskSliceSuccessResponse "Tasks found"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid project ID"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Project not found"
@@ -245,7 +245,7 @@ func (h *TaskHandler) FindTasksByProjectID(c *fiber.Ctx) error {
 // @Security BearerAuth
 // @Param taskId path int true "Task ID"
 // @Param task body dto.UpdateTaskRequest true "Task update request"
-// @Success 202 {object} dto.SuccessResponse[dto.TaskResponse] "Task updated"
+// @Success 202 {object} dto.TaskSuccessResponse "Task updated"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid input or task ID"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Task not found"
@@ -313,7 +313,7 @@ func (h *TaskHandler) UpdateTask(c *fiber.Ctx) error {
 // @Security BearerAuth
 // @Param taskId path int true "Task ID"
 // @Param userId path int true "User ID"
-// @Success 202 {object} dto.SuccessResponse[interface{}] "Task assigned successfully"
+// @Success 202 {object} dto.GenericSuccessResponse "Task assigned successfully"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid IDs or user not in project"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Task or user not found"
@@ -377,7 +377,7 @@ func (h *TaskHandler) AssignTaskToUser(c *fiber.Ctx) error {
 // @Param status query string false "Task status" Enums(OPEN, IN_PROGRESS, DONE)
 // @Param priority query string false "Task priority" Enums(LOW, MEDIUM, HIGH)
 // @Param due_date_before query string false "Due date before (format: YYYY-MM-DD)"
-// @Success 202 {object} dto.SliceSuccessResponse[dto.TaskResponse] "Tasks found"
+// @Success 202 {object} dto.TaskSliceSuccessResponse "Tasks found"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid query parameters"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /tasks [get]
@@ -451,7 +451,7 @@ func (h *TaskHandler) FindTasks(c *fiber.Ctx) error {
 // @Produce json
 // @Security BearerAuth
 // @Param taskId path int true "Task ID"
-// @Success 202 {object} dto.SuccessResponse[interface{}] "Task deleted successfully"
+// @Success 202 {object} dto.GenericSuccessResponse "Task deleted successfully"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid task ID"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Task not found"

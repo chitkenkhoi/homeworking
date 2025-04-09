@@ -2,7 +2,7 @@ package dto
 
 // SuccessResponse represents a generic success response
 type SuccessResponse[T any] struct {
-	Message string `json:"message" example:"Operation completed successfully"`
+	Message string `json:"message"`
 	Data    T      `json:"data"`
 }
 
@@ -14,7 +14,7 @@ type ErrorResponse struct {
 
 // SliceSuccessResponse represents a success response with a slice of data
 type SliceSuccessResponse[T any] struct {
-	Message string `json:"message" example:"Items found successfully"`
+	Message string `json:"message"`
 	Data    []T    `json:"data"`
 	Count   int    `json:"count" example:"3"`
 }
@@ -43,10 +43,43 @@ type ProjectSliceSuccessResponse struct {
 }
 
 type GenericSuccessResponse struct {
-	Message string      `json:"message" example:"Operation successful"`
+	Message string `json:"message" example:"Operation successful"`
 }
 
 type IntSuccessResponse struct {
-    Message string `json:"message" example:"Operation successful"`
-    Data    int    `json:"data" example:"3"`
+	Message string `json:"message" example:"Operation successful"`
+	Data    int    `json:"data" example:"3"`
+}
+
+type UserSuccessResponse struct {
+	Message string       `json:"message" example:"Operation successful"`
+	Data    UserResponse `json:"data"`
+}
+
+type UserSliceSuccessResponse struct {
+	Message string         `json:"message" example:"Items found successfully"`
+	Data    []UserResponse `json:"data"`
+	Count   int            `json:"count" example:"5"`
+}
+
+type TaskSuccessResponse struct {
+	Message string       `json:"message" example:"Operation successful"`
+	Data    TaskResponse `json:"data"`
+}
+
+type TaskSliceSuccessResponse struct {
+	Message string         `json:"message" example:"Items found successfully"`
+	Data    []TaskResponse `json:"data"`
+	Count   int            `json:"count" example:"5"`
+}
+
+type SprintSuccessResponse struct {
+	Message string         `json:"message" example:"Operation successful"`
+	Data    SprintResponse `json:"data"`
+}
+
+type SprintSliceSuccessResponse struct {
+	Message string           `json:"message" example:"Items found successfully"`
+	Data    []SprintResponse `json:"data"`
+	Count   int              `json:"count" example:"5"`
 }

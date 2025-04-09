@@ -1,0 +1,1615 @@
+basePath: /api/v1
+definitions:
+  dto.AddTeamMembersPartialSuccessResponse:
+    properties:
+      details:
+        example: User with ID 3 not found
+        type: string
+      message:
+        example: Some users could not be added to the project
+        type: string
+      updated_count:
+        example: 2
+        type: integer
+    type: object
+  dto.AddTeamMembersRequest:
+    type: object
+  dto.CreateProjectRequest:
+    properties:
+      description:
+        description: Description is an optional detailed description of the project.
+        example: Redesign the company website to improve UX.
+        maxLength: 65535
+        type: string
+      end_date:
+        description: EndDate is the optional date when the project is expected to
+          end.
+        example: "2025-06-15T00:00:00Z"
+        type: string
+      name:
+        description: Name is the name of the project.
+        example: Website Redesign
+        maxLength: 255
+        minLength: 2
+        type: string
+      start_date:
+        description: StartDate is the date when the project begins.
+        example: "2025-04-10T00:00:00Z"
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.ProjectStatus'
+        description: Status is the current status of the project.
+        enum:
+        - ACTIVE
+        - ON_HOLD
+        - COMPLETED
+        - CANCELLED
+        example: ACTIVE
+    required:
+    - name
+    - start_date
+    type: object
+  dto.CreateSprintRequest:
+    properties:
+      end_date:
+        description: EndDate is the date when the sprint ends.
+        example: "2025-04-30T00:00:00Z"
+        type: string
+      goal:
+        description: Goal is the objective or goal of the sprint.
+        example: Complete initial UI design
+        minLength: 5
+        type: string
+      name:
+        description: Name is the name of the sprint.
+        example: Sprint 1
+        minLength: 2
+        type: string
+      project_id:
+        description: ProjectID is the ID of the project this sprint belongs to.
+        example: 1
+        minimum: 1
+        type: integer
+      start_date:
+        description: StartDate is the date when the sprint begins.
+        example: "2025-04-15T00:00:00Z"
+        type: string
+    required:
+    - end_date
+    - goal
+    - name
+    - project_id
+    - start_date
+    type: object
+  dto.CreateTaskRequest:
+    properties:
+      description:
+        description: Description is an optional detailed description of the task.
+        example: Create a RESTful endpoint for user authentication.
+        maxLength: 65535
+        type: string
+      due_date:
+        description: DueDate is the optional due date of the task.
+        example: "2025-04-20T00:00:00Z"
+        type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/models.TaskPriority'
+        description: Priority is the priority level of the task.
+        enum:
+        - HIGH
+        - MEDIUM
+        - LOW
+        - CRITICAL
+        example: HIGH
+      sprint_id:
+        description: SprintID is the ID of the sprint this task belongs to.
+        example: 1
+        minimum: 1
+        type: integer
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TaskStatus'
+        description: Status is the current status of the task.
+        enum:
+        - TO_DO
+        - IN_PROGRESS
+        - REVIEW
+        - DONE
+        - BLOCKED
+        example: TO_DO
+      title:
+        description: Title is the title of the task.
+        example: Implement login API
+        maxLength: 255
+        minLength: 2
+        type: string
+    required:
+    - sprint_id
+    - title
+    type: object
+  dto.CreateUserRequest:
+    properties:
+      email:
+        description: Email is the user's email address.
+        example: john.doe@example.com
+        type: string
+      first_name:
+        description: FirstName is the user's first name.
+        example: John
+        maxLength: 100
+        minLength: 2
+        type: string
+      last_name:
+        description: LastName is the user's last name.
+        example: Doe
+        maxLength: 100
+        minLength: 2
+        type: string
+      password:
+        description: Password is the user's password.
+        example: securepassword123
+        minLength: 8
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/models.UserRole'
+        description: Role is the user's role in the system.
+        enum:
+        - TEAM_MEMBER
+        - PROJECT_MANAGER
+        - ADMIN
+        example: TEAM_MEMBER
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    type: object
+  dto.ErrorResponse:
+    properties:
+      details: {}
+      message:
+        example: An error occurred
+        type: string
+    type: object
+  dto.GenericSuccessResponse:
+    properties:
+      message:
+        example: Operation successful
+        type: string
+    type: object
+  dto.IntSuccessResponse:
+    properties:
+      data:
+        example: 3
+        type: integer
+      message:
+        example: Operation successful
+        type: string
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        description: Email is the user's email address.
+        example: john.doe@example.com
+        type: string
+      password:
+        description: Password is the user's password.
+        example: securepassword123
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.ProjectResponse:
+    properties:
+      description:
+        description: Description is the detailed description of the project.
+        example: Redesign the company website to improve UX.
+        type: string
+      end_date:
+        description: EndDate is the date when the project is expected to end (optional).
+        example: "2025-06-15T00:00:00Z"
+        type: string
+      id:
+        description: ID is the unique identifier of the project.
+        example: 1
+        type: integer
+      manager_id:
+        description: ManagerID is the ID of the project manager.
+        example: 42
+        type: integer
+      name:
+        description: Name is the name of the project.
+        example: Website Redesign
+        type: string
+      start_date:
+        description: StartDate is the date when the project started.
+        example: "2025-04-10T00:00:00Z"
+        type: string
+      status:
+        description: Status is the current status of the project.
+        example: ACTIVE
+        type: string
+      team_member_count:
+        description: TeamMemberCount is the total number of team members (optional).
+        example: 3
+        type: integer
+      team_members:
+        description: TeamMembers is the list of team members assigned to the project
+          (optional).
+        items:
+          $ref: '#/definitions/dto.TeamMember'
+        type: array
+    type: object
+  dto.ProjectSliceSuccessResponse:
+    properties:
+      count:
+        example: 5
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.ProjectResponse'
+        type: array
+      message:
+        example: Items found successfully
+        type: string
+    type: object
+  dto.ProjectSuccessResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.ProjectResponse'
+      message:
+        example: Operation successful
+        type: string
+    type: object
+  dto.SprintResponse:
+    properties:
+      end_date:
+        description: EndDate is the date when the sprint ends.
+        example: "2025-04-30T00:00:00Z"
+        type: string
+      goal:
+        description: Goal is the objective or goal of the sprint.
+        example: Complete initial UI design
+        type: string
+      id:
+        description: ID is the unique identifier of the sprint.
+        example: 1
+        type: integer
+      name:
+        description: Name is the name of the sprint.
+        example: Sprint 1
+        type: string
+      project_id:
+        description: ProjectID is the ID of the project this sprint belongs to.
+        example: 1
+        type: integer
+      project_name:
+        description: ProjectName is the optional name of the associated project.
+        example: Website Redesign
+        type: string
+      start_date:
+        description: StartDate is the date when the sprint started.
+        example: "2025-04-15T00:00:00Z"
+        type: string
+      task_count:
+        description: TaskCount is the total number of tasks in the sprint (optional).
+        example: 3
+        type: integer
+      tasks:
+        description: Tasks is the list of tasks within the sprint (optional).
+        items:
+          $ref: '#/definitions/dto.TaskInSprintResponse'
+        type: array
+    type: object
+  dto.SprintSliceSuccessResponse:
+    properties:
+      count:
+        example: 5
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.SprintResponse'
+        type: array
+      message:
+        example: Items found successfully
+        type: string
+    type: object
+  dto.SprintSuccessResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.SprintResponse'
+      message:
+        example: Operation successful
+        type: string
+    type: object
+  dto.TaskInSprintResponse:
+    properties:
+      due_date:
+        description: DueDate is the optional due date of the task.
+        example: "2025-04-25T00:00:00Z"
+        type: string
+      id:
+        description: ID is the unique identifier of the task.
+        example: 101
+        type: integer
+      priority:
+        allOf:
+        - $ref: '#/definitions/models.TaskPriority'
+        description: Priority is the priority level of the task.
+        example: HIGH
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TaskStatus'
+        description: Status is the current status of the task.
+        example: IN_PROGRESS
+      task:
+        description: Title is the title or description of the task.
+        example: Design homepage layout
+        type: string
+    type: object
+  dto.TaskResponse:
+    properties:
+      assignee_first_name:
+        description: AssigneeFirstName is the optional first name of the assignee.
+        example: John
+        type: string
+      assignee_id:
+        description: AssigneeID is the optional ID of the user assigned to the task.
+        example: 42
+        type: integer
+      assignee_last_name:
+        description: AssigneeLastName is the optional last name of the assignee.
+        example: Doe
+        type: string
+      description:
+        description: Description is the detailed description of the task.
+        example: Create a RESTful endpoint for user authentication.
+        type: string
+      due_date:
+        description: DueDate is the optional due date of the task.
+        example: "2025-04-20T00:00:00Z"
+        type: string
+      id:
+        description: ID is the unique identifier of the task.
+        example: 101
+        type: integer
+      priority:
+        allOf:
+        - $ref: '#/definitions/models.TaskPriority'
+        description: Priority is the priority level of the task.
+        example: HIGH
+      project_id:
+        description: ProjectID is the ID of the project this task belongs to.
+        example: 1
+        type: integer
+      project_name:
+        description: ProjectName is the name of the project this task belongs to.
+        example: Website Redesign
+        type: string
+      sprint_id:
+        description: SprintID is the ID of the sprint this task belongs to.
+        example: 1
+        type: integer
+      sprint_name:
+        description: SprintName is the name of the sprint this task belongs to.
+        example: Sprint 1
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TaskStatus'
+        description: Status is the current status of the task.
+        example: IN_PROGRESS
+      title:
+        description: Title is the title of the task.
+        example: Implement login API
+        type: string
+    type: object
+  dto.TaskSliceSuccessResponse:
+    properties:
+      count:
+        example: 5
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.TaskResponse'
+        type: array
+      message:
+        example: Items found successfully
+        type: string
+    type: object
+  dto.TaskSuccessResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.TaskResponse'
+      message:
+        example: Operation successful
+        type: string
+    type: object
+  dto.TeamMember:
+    properties:
+      email:
+        description: Email is the email address of the team member.
+        example: john.doe@example.com
+        type: string
+      first_name:
+        description: FirstName is the first name of the team member.
+        example: John
+        type: string
+      id:
+        description: ID is the unique identifier of the team member.
+        example: 101
+        type: integer
+      last_name:
+        description: LastName is the last name of the team member.
+        example: Doe
+        type: string
+    type: object
+  dto.TokenResponse:
+    properties:
+      token:
+        example: random-token
+        type: string
+    type: object
+  dto.UpdateProjectRequest:
+    properties:
+      description:
+        description: Description is the optional new description of the project.
+        example: Updated redesign with new features.
+        maxLength: 65535
+        type: string
+      end_date:
+        description: EndDate is the optional new end date of the project.
+        example: "2025-07-01T00:00:00Z"
+        type: string
+      name:
+        description: Name is the optional new name of the project.
+        example: Website Redesign v2
+        maxLength: 255
+        minLength: 2
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.ProjectStatus'
+        description: Status is the optional new status of the project.
+        enum:
+        - ACTIVE
+        - ON_HOLD
+        - COMPLETED
+        - CANCELLED
+        example: ON_HOLD
+    type: object
+  dto.UpdateSprintRequest:
+    properties:
+      end_date:
+        description: EndDate is the optional new end date of the sprint.
+        example: "2025-05-05T00:00:00Z"
+        type: string
+      goal:
+        description: Goal is the optional new goal of the sprint.
+        example: Finalize UI and start backend integration
+        minLength: 5
+        type: string
+      name:
+        description: Name is the optional new name of the sprint.
+        example: Sprint 1 - Revised
+        minLength: 2
+        type: string
+      start_date:
+        description: StartDate is the optional new start date of the sprint.
+        example: "2025-04-20T00:00:00Z"
+        type: string
+    type: object
+  dto.UpdateTaskRequest:
+    properties:
+      description:
+        description: Description is the optional new description of the task.
+        example: Modify endpoint to include JWT.
+        maxLength: 65535
+        type: string
+      due_date:
+        description: DueDate is the optional new due date of the task.
+        example: "2025-04-25T00:00:00Z"
+        type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/models.TaskPriority'
+        description: Priority is the optional new priority level of the task.
+        enum:
+        - HIGH
+        - MEDIUM
+        - LOW
+        - CRITICAL
+        example: MEDIUM
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TaskStatus'
+        description: Status is the optional new status of the task.
+        enum:
+        - TO_DO
+        - IN_PROGRESS
+        - REVIEW
+        - DONE
+        - BLOCKED
+        example: REVIEW
+      title:
+        description: Title is the optional new title of the task.
+        example: Update login API
+        maxLength: 255
+        minLength: 2
+        type: string
+    type: object
+  dto.UpdateUserRequest:
+    properties:
+      first_name:
+        description: FirstName is the optional new first name of the user.
+        example: Johnny
+        maxLength: 100
+        minLength: 2
+        type: string
+      last_name:
+        description: LastName is the optional new last name of the user.
+        example: Smith
+        maxLength: 100
+        minLength: 2
+        type: string
+    type: object
+  dto.UserResponse:
+    properties:
+      current_project_id:
+        description: CurrentProjectID is the optional ID of the user's current project.
+        example: 1
+        type: integer
+      current_project_name:
+        description: CurrentProjectName is the optional name of the user's current
+          project.
+        example: Website Redesign
+        type: string
+      email:
+        description: Email is the user's email address.
+        example: john.doe@example.com
+        type: string
+      first_name:
+        description: FirstName is the user's first name.
+        example: John
+        type: string
+      id:
+        description: ID is the unique identifier of the user.
+        example: 42
+        type: integer
+      last_name:
+        description: LastName is the user's last name.
+        example: Doe
+        type: string
+      role:
+        description: Role is the user's role in the system.
+        example: TEAM_MEMBER
+        type: string
+    type: object
+  dto.UserSliceSuccessResponse:
+    properties:
+      count:
+        example: 5
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.UserResponse'
+        type: array
+      message:
+        example: Items found successfully
+        type: string
+    type: object
+  dto.UserSuccessResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.UserResponse'
+      message:
+        example: Operation successful
+        type: string
+    type: object
+  models.ProjectStatus:
+    enum:
+    - ACTIVE
+    - COMPLETED
+    - ON_HOLD
+    - CANCELLED
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusCompleted
+    - StatusOnHold
+    - StatusCancelled
+  models.TaskPriority:
+    enum:
+    - HIGH
+    - MEDIUM
+    - LOW
+    - CRITICAL
+    type: string
+    x-enum-varnames:
+    - HighPriority
+    - MediumPriority
+    - LowPriority
+    - CriticalPriority
+  models.TaskStatus:
+    enum:
+    - TO_DO
+    - IN_PROGRESS
+    - REVIEW
+    - DONE
+    - BLOCKED
+    type: string
+    x-enum-varnames:
+    - ToDoTask
+    - InProgressTask
+    - ReviewTask
+    - DoneTask
+    - BlockedTask
+  models.UserRole:
+    enum:
+    - ADMIN
+    - PROJECT_MANAGER
+    - TEAM_MEMBER
+    type: string
+    x-enum-varnames:
+    - Admin
+    - ProjectManager
+    - TeamMember
+host: localhost:3000
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample swagger for Fiber
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Fiber Example API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/dto.TokenResponse'
+        "400":
+          description: Bad request - Invalid credentials or input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: User login
+      tags:
+      - Users
+  /me:
+    get:
+      description: Retrieves details of the authenticated user
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: User found
+          schema:
+            $ref: '#/definitions/dto.UserSuccessResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - Users
+  /projects:
+    get:
+      description: Retrieves projects based on optional query parameters (id, name,
+        status, managerid, startdate, enddate)
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        type: integer
+      - description: Project name
+        in: query
+        name: name
+        type: string
+      - description: Project status
+        enum:
+        - ACTIVE
+        - INACTIVE
+        - COMPLETED
+        in: query
+        name: status
+        type: string
+      - description: Manager ID
+        in: query
+        name: managerid
+        type: integer
+      - description: 'Start date after (format: YYYY-MM-DD)'
+        in: query
+        name: startdate
+        type: string
+      - description: 'End date before (format: YYYY-MM-DD)'
+        in: query
+        name: enddate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Projects found
+          schema:
+            $ref: '#/definitions/dto.ProjectSliceSuccessResponse'
+        "400":
+          description: Bad request - Invalid query parameters
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: List projects with filters
+      tags:
+      - Projects
+    post:
+      consumes:
+      - application/json
+      description: Creates a new project with the provided details
+      parameters:
+      - description: Project creation request
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Project created successfully
+          schema:
+            $ref: '#/definitions/dto.ProjectSuccessResponse'
+        "400":
+          description: Bad request - Invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new project
+      tags:
+      - Projects
+  /projects/{projectId}:
+    delete:
+      description: Deletes a specific project
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project deleted successfully
+          schema:
+            $ref: '#/definitions/dto.GenericSuccessResponse'
+        "400":
+          description: Bad request - Invalid project ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Project not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a project
+      tags:
+      - Projects
+    get:
+      description: Retrieves details of a specific project
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project found
+          schema:
+            $ref: '#/definitions/dto.ProjectSuccessResponse'
+        "400":
+          description: Bad request - Invalid project ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Project not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get a project by ID
+      tags:
+      - Projects
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing project
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: Project update request
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project updated
+          schema:
+            $ref: '#/definitions/dto.ProjectSuccessResponse'
+        "400":
+          description: Bad request - Invalid input or project ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a project
+      tags:
+      - Projects
+  /projects/{projectId}/members:
+    post:
+      consumes:
+      - application/json
+      description: Adds one or more users to a project as team members
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: List of user IDs to add
+        in: body
+        name: members
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddTeamMembersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Team members added successfully
+          schema:
+            $ref: '#/definitions/dto.IntSuccessResponse'
+        "207":
+          description: Some team members added successfully
+          schema:
+            $ref: '#/definitions/dto.AddTeamMembersPartialSuccessResponse'
+        "400":
+          description: Bad request - Invalid input or project ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add team members to a project
+      tags:
+      - Projects
+  /projects/{projectId}/tasks:
+    get:
+      description: Retrieves all tasks associated with a specific project
+      parameters:
+      - description: Project ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Tasks found
+          schema:
+            $ref: '#/definitions/dto.TaskSliceSuccessResponse'
+        "400":
+          description: Bad request - Invalid project ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Project not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get tasks by project ID
+      tags:
+      - Tasks
+  /sprints:
+    get:
+      description: Retrieves sprints based on optional query parameters (id, name,
+        projectid, startdate, enddate)
+      parameters:
+      - description: Sprint ID
+        in: query
+        name: id
+        type: integer
+      - description: Sprint name
+        in: query
+        name: name
+        type: string
+      - description: Project ID
+        in: query
+        name: projectid
+        type: integer
+      - description: 'Start date after (format: YYYY-MM-DD)'
+        in: query
+        name: startdate
+        type: string
+      - description: 'End date before (format: YYYY-MM-DD)'
+        in: query
+        name: enddate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sprints found
+          schema:
+            $ref: '#/definitions/dto.SprintSliceSuccessResponse'
+        "400":
+          description: Bad request - Invalid query parameters
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Find sprints with filters
+      tags:
+      - Sprints
+    post:
+      consumes:
+      - application/json
+      description: Creates a new sprint for a specific project
+      parameters:
+      - description: Sprint creation request
+        in: body
+        name: sprint
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateSprintRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Sprint created successfully
+          schema:
+            $ref: '#/definitions/dto.SprintSuccessResponse'
+        "400":
+          description: Bad request - Invalid input or dates
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Project not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new sprint
+      tags:
+      - Sprints
+  /sprints/{sprintId}:
+    delete:
+      description: Deletes a specific sprint
+      parameters:
+      - description: Sprint ID
+        in: path
+        name: sprintId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sprint deleted successfully
+          schema:
+            $ref: '#/definitions/dto.GenericSuccessResponse'
+        "400":
+          description: Bad request - Invalid sprint ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Sprint not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a sprint
+      tags:
+      - Sprints
+    get:
+      description: Retrieves details of a specific sprint
+      parameters:
+      - description: Sprint ID
+        in: path
+        name: sprintId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sprint found
+          schema:
+            $ref: '#/definitions/dto.SprintSuccessResponse'
+        "400":
+          description: Bad request - Invalid sprint ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Sprint not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a sprint by ID
+      tags:
+      - Sprints
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing sprint
+      parameters:
+      - description: Sprint ID
+        in: path
+        name: sprintId
+        required: true
+        type: integer
+      - description: Sprint update request
+        in: body
+        name: sprint
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateSprintRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sprint updated
+          schema:
+            $ref: '#/definitions/dto.SprintSuccessResponse'
+        "400":
+          description: Bad request - Invalid input or sprint ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a sprint
+      tags:
+      - Sprints
+  /tasks:
+    get:
+      description: Retrieves tasks based on optional query parameters (id, title,
+        status, priority, due_date_before)
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        type: integer
+      - description: Task title
+        in: query
+        name: title
+        type: string
+      - description: Task status
+        enum:
+        - OPEN
+        - IN_PROGRESS
+        - DONE
+        in: query
+        name: status
+        type: string
+      - description: Task priority
+        enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        in: query
+        name: priority
+        type: string
+      - description: 'Due date before (format: YYYY-MM-DD)'
+        in: query
+        name: due_date_before
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Tasks found
+          schema:
+            $ref: '#/definitions/dto.TaskSliceSuccessResponse'
+        "400":
+          description: Bad request - Invalid query parameters
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Find tasks with filters
+      tags:
+      - Tasks
+    post:
+      consumes:
+      - application/json
+      description: Creates a new task with the provided details for a specific sprint
+      parameters:
+      - description: Task creation request
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Task created successfully
+          schema:
+            $ref: '#/definitions/dto.TaskSuccessResponse'
+        "400":
+          description: Bad request - Invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Sprint not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new task
+      tags:
+      - Tasks
+  /tasks/{taskId}:
+    delete:
+      description: Deletes a specific task
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Task deleted successfully
+          schema:
+            $ref: '#/definitions/dto.GenericSuccessResponse'
+        "400":
+          description: Bad request - Invalid task ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Task not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a task
+      tags:
+      - Tasks
+    get:
+      description: Retrieves details of a specific task
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Task found
+          schema:
+            $ref: '#/definitions/dto.TaskSuccessResponse'
+        "400":
+          description: Bad request - Invalid task ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Task not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a task by ID
+      tags:
+      - Tasks
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of an existing task
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      - description: Task update request
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Task updated
+          schema:
+            $ref: '#/definitions/dto.TaskSuccessResponse'
+        "400":
+          description: Bad request - Invalid input or task ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Task not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a task
+      tags:
+      - Tasks
+  /tasks/{taskId}/user/{userId}:
+    post:
+      description: Assigns a specific task to a user
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Task assigned successfully
+          schema:
+            $ref: '#/definitions/dto.GenericSuccessResponse'
+        "400":
+          description: Bad request - Invalid IDs or user not in project
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden - User not authorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - Task or user not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign task to user
+      tags:
+      - Tasks
+  /users:
+    get:
+      description: Retrieves a list of all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users found
+          schema:
+            $ref: '#/definitions/dto.UserSliceSuccessResponse'
+        "400":
+          description: Bad request - Database error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get all users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user with the provided details
+      parameters:
+      - description: User creation request
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            $ref: '#/definitions/dto.UserSuccessResponse'
+        "400":
+          description: Bad request - Invalid input or validation failure
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Create a new user
+      tags:
+      - Users
+  /users/{userId}:
+    delete:
+      description: Deletes a user based on the provided ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted
+          schema:
+            $ref: '#/definitions/dto.GenericSuccessResponse'
+        "400":
+          description: Bad request - Invalid ID or user not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Delete a user
+      tags:
+      - Users
+    get:
+      description: Retrieves a user based on the provided ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: User found
+          schema:
+            $ref: '#/definitions/dto.UserSuccessResponse'
+        "400":
+          description: Bad request - Invalid ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get user by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing user's details
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: User update request
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: User updated
+          schema:
+            $ref: '#/definitions/dto.UserSuccessResponse'
+        "400":
+          description: Bad request - Invalid input or ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Update a user
+      tags:
+      - Users
+  /users/{userId}/tasks:
+    get:
+      description: Retrieves all tasks assigned to a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Tasks found
+          schema:
+            $ref: '#/definitions/dto.TaskSliceSuccessResponse'
+        "400":
+          description: Bad request - Invalid user ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not found - User not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get tasks by user ID
+      tags:
+      - Tasks
+schemes:
+- http
+- https
+swagger: "2.0"

@@ -37,7 +37,7 @@ func NewSprintHandler(sprintService service.SprintService, cfg config.DateTimeCo
 // @Produce json
 // @Security BearerAuth
 // @Param sprint body dto.CreateSprintRequest true "Sprint creation request"
-// @Success 201 {object} dto.SuccessResponse[dto.SprintResponse] "Sprint created successfully"
+// @Success 201 {object} dto.SprintSuccessResponse "Sprint created successfully"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid input or dates"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Project not found"
@@ -105,7 +105,7 @@ func (h *SprintHandler) CreateSprint(c *fiber.Ctx) error {
 // @Produce json
 // @Security BearerAuth
 // @Param sprintId path int true "Sprint ID"
-// @Success 200 {object} dto.SuccessResponse[dto.SprintResponse] "Sprint found"
+// @Success 200 {object} dto.SprintSuccessResponse "Sprint found"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid sprint ID"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Sprint not found"
@@ -159,7 +159,7 @@ func (h *SprintHandler) GetSprint(c *fiber.Ctx) error {
 // @Param projectid query int false "Project ID"
 // @Param startdate query string false "Start date after (format: YYYY-MM-DD)"
 // @Param enddate query string false "End date before (format: YYYY-MM-DD)"
-// @Success 200 {object} dto.SliceSuccessResponse[dto.SprintResponse] "Sprints found"
+// @Success 200 {object} dto.SprintSliceSuccessResponse "Sprints found"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid query parameters"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /sprints [get]
@@ -251,7 +251,7 @@ func (h *SprintHandler) FindSprints(c *fiber.Ctx) error {
 // @Security BearerAuth
 // @Param sprintId path int true "Sprint ID"
 // @Param sprint body dto.UpdateSprintRequest true "Sprint update request"
-// @Success 200 {object} dto.SuccessResponse[dto.SprintResponse] "Sprint updated"
+// @Success 200 {object} dto.SprintSuccessResponse "Sprint updated"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid input or sprint ID"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
@@ -320,7 +320,7 @@ func (h *SprintHandler) UpdateSprint(c *fiber.Ctx) error {
 // @Produce json
 // @Security BearerAuth
 // @Param sprintId path int true "Sprint ID"
-// @Success 200 {object} dto.SuccessResponse[int] "Sprint deleted successfully"
+// @Success 200 {object} dto.GenericSuccessResponse "Sprint deleted successfully"
 // @Failure 400 {object} dto.ErrorResponse "Bad request - Invalid sprint ID"
 // @Failure 403 {object} dto.ErrorResponse "Forbidden - User not authorized"
 // @Failure 404 {object} dto.ErrorResponse "Not found - Sprint not found"

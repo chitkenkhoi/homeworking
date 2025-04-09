@@ -7,20 +7,15 @@ import (
 // CreateUserRequest represents the request body for creating a new user.
 type CreateUserRequest struct {
 	// Email is the user's email address.
-	// @example "john.doe@example.com"
-	Email     string          `json:"email" validate:"required,email"`
+	Email     string          `json:"email" validate:"required,email" example:"john.doe@example.com"`
 	// Password is the user's password.
-	// @example "securepassword123"
-	Password  string          `json:"password" validate:"required,min=8"`
+	Password  string          `json:"password" validate:"required,min=8" example:"securepassword123"`
 	// FirstName is the user's first name.
-	// @example "John"
-	FirstName string          `json:"first_name" validate:"required,min=2,max=100"`
+	FirstName string          `json:"first_name" validate:"required,min=2,max=100" example:"John"`
 	// LastName is the user's last name.
-	// @example "Doe"
-	LastName  string          `json:"last_name" validate:"required,min=2,max=100"`
+	LastName  string          `json:"last_name" validate:"required,min=2,max=100" example:"Doe"`
 	// Role is the user's role in the system.
-	// @example "TEAM_MEMBER"
-	Role      models.UserRole `json:"role" validate:"omitempty,oneof=TEAM_MEMBER PROJECT_MANAGER ADMIN"`
+	Role      models.UserRole `json:"role" validate:"omitempty,oneof=TEAM_MEMBER PROJECT_MANAGER ADMIN" example:"TEAM_MEMBER"`
 }
 
 func (cur *CreateUserRequest) MapToUser() *models.User {
@@ -36,36 +31,27 @@ func (cur *CreateUserRequest) MapToUser() *models.User {
 // LoginRequest represents the request body for user login.
 type LoginRequest struct {
 	// Email is the user's email address.
-	// @example "john.doe@example.com"
-	Email    string `json:"email" validate:"required,email"`
+	Email    string `json:"email" validate:"required,email" example:"john.doe@example.com"`
 	// Password is the user's password.
-	// @example "securepassword123"
-	Password string `json:"password" validate:"required,min=8"`
+	Password string `json:"password" validate:"required,min=8" example:"securepassword123"`
 }
 
 // UserResponse represents the response body for user details.
 type UserResponse struct {
 	// ID is the unique identifier of the user.
-	// @example 42
-	ID                 int    `json:"id"`
+	ID                 int    `json:"id" example:"42"`
 	// Email is the user's email address.
-	// @example "john.doe@example.com"
-	Email              string `json:"email"`
+	Email              string `json:"email" example:"john.doe@example.com"`
 	// Role is the user's role in the system.
-	// @example "TEAM_MEMBER"
-	Role               string `json:"role"`
+	Role               string `json:"role" example:"TEAM_MEMBER"`
 	// FirstName is the user's first name.
-	// @example "John"
-	FirstName          string `json:"first_name"`
+	FirstName          string `json:"first_name" example:"John"`
 	// LastName is the user's last name.
-	// @example "Doe"
-	LastName           string `json:"last_name"`
+	LastName           string `json:"last_name" example:"Doe"`
 	// CurrentProjectID is the optional ID of the user's current project.
-	// @example 1
-	CurrentProjectID   int    `json:"current_project_id,omitempty"`
+	CurrentProjectID   int    `json:"current_project_id,omitempty" example:"1"`
 	// CurrentProjectName is the optional name of the user's current project.
-	// @example "Website Redesign"
-	CurrentProjectName string `json:"current_project_name,omitempty"`
+	CurrentProjectName string `json:"current_project_name,omitempty" example:"Website Redesign"`
 }
 
 func MapToUserDto(user *models.User) *UserResponse {
@@ -86,20 +72,9 @@ func MapToUserDto(user *models.User) *UserResponse {
 
 func MapToUserDtoSlice(users []*models.User) []UserResponse {
 	urs := make([]UserResponse, 0, len(users))
-	for index, user := range users {
-		urs = append(urs, UserResponse{
-			ID:        user.ID,
-			Email:     user.Email,
-			Role:      string(user.Role),
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-		})
-		if user.CurrentProjectID != nil {
-			urs[index].CurrentProjectID = *user.CurrentProjectID
-		}
-		if user.CurrentProject != nil {
-			urs[index].CurrentProjectName = user.CurrentProject.Name
-		}
+	for _, user := range users { 
+		ur := MapToUserDto(user)
+		urs = append(urs, *ur)
 	}
 	return urs
 }
@@ -107,9 +82,7 @@ func MapToUserDtoSlice(users []*models.User) []UserResponse {
 // UpdateUserRequest represents the request body for updating an existing user.
 type UpdateUserRequest struct {
 	// FirstName is the optional new first name of the user.
-	// @example "Johnny"
-	FirstName *string `json:"first_name,omitempty" validate:"omitempty,min=2,max=100"`
+	FirstName *string `json:"first_name,omitempty" validate:"omitempty,min=2,max=100" example:"Johnny"`
 	// LastName is the optional new last name of the user.
-	// @example "Smith"
-	LastName  *string `json:"last_name,omitempty" validate:"omitempty,min=2,max=100"`
+	LastName  *string `json:"last_name,omitempty" validate:"omitempty,min=2,max=100" example:"Smith"`
 }
